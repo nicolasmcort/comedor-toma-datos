@@ -46,20 +46,26 @@
       min-height: 100vh;
       width: 100%;
       display: flex;
-      justify-content: center;
+      justify-content: stretch;
       align-items: stretch;
-      padding: calc(12px + var(--safe-t)) 16px calc(16px + var(--safe-b));
+      padding: calc(10px + var(--safe-t)) 12px calc(14px + var(--safe-b));
     }
     .shell {
       width: 100%;
-      max-width: 430px;
-      margin: 0 auto;
+      max-width: 100%;
+      margin: 0;
       display: flex;
       flex-direction: column;
+      flex: 1;
     }
     .shell.center {
-      justify-content: center;
-      gap: 16px;
+      justify-content: flex-start;
+      gap: 14px;
+      padding-top: 4vh;
+    }
+    @media (min-width: 560px) {
+      .screen { justify-content: center; }
+      .shell { max-width: 520px; margin: 0 auto; }
     }
 
     .brand { text-align: center; margin-bottom: 4px; }
@@ -70,41 +76,43 @@
       border: 1px solid rgba(77,171,247,.35);
       padding: 6px 12px;
       border-radius: 999px;
-      font-size: .75rem;
+      font-size: .8rem;
       margin-bottom: 10px;
     }
-    .brand h1 { margin: 0; font-size: 1.65rem; }
-    .brand p { margin: 8px 0 0; color: var(--muted); line-height: 1.4; font-size: .92rem; }
+    .brand h1 { margin: 0; font-size: clamp(1.6rem, 6vw, 2rem); }
+    .brand p { margin: 8px 0 0; color: var(--muted); line-height: 1.4; font-size: 1rem; }
 
     .card {
       background: linear-gradient(180deg, var(--panel2), var(--panel));
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 18px 16px;
       box-shadow: var(--shadow);
+      width: 100%;
+      flex: 0 0 auto;
     }
-    .step-title { margin: 0 0 6px; font-size: 1.25rem; }
-    .step-sub { margin: 0 0 14px; color: var(--muted); font-size: .9rem; line-height: 1.4; }
+    .step-title { margin: 0 0 8px; font-size: clamp(1.35rem, 5.5vw, 1.7rem); }
+    .step-sub { margin: 0 0 16px; color: var(--muted); font-size: 1rem; line-height: 1.4; }
 
-    label { display:block; font-size:.78rem; color:var(--muted); margin-bottom:6px; }
+    label { display:block; font-size:.9rem; color:var(--muted); margin-bottom:8px; }
     input[type=password] {
       width: 100%;
       border: 1px solid var(--line);
       background: #0b1322;
       color: var(--text);
-      border-radius: 12px;
-      padding: 14px;
-      font-size: 1.05rem;
-      margin-bottom: 12px;
+      border-radius: 14px;
+      padding: 16px;
+      font-size: 1.15rem;
+      margin-bottom: 14px;
     }
 
     .btn {
       border: 0;
-      border-radius: 14px;
-      min-height: 54px;
+      border-radius: 16px;
+      min-height: 58px;
       width: 100%;
-      padding: 14px 16px;
-      font-size: 1.05rem;
+      padding: 16px 16px;
+      font-size: 1.12rem;
       font-weight: 750;
       color: #fff;
       cursor: pointer;
@@ -142,7 +150,7 @@
     .topbar .date { color: var(--muted); font-size: .88rem; }
     .topbar .time {
       font-variant-numeric: tabular-nums;
-      font-size: 2.4rem;
+      font-size: clamp(2.4rem, 10vw, 3rem);
       font-weight: 800;
       letter-spacing: .03em;
       line-height: 1.05;
@@ -165,26 +173,26 @@
     .banner.ok { background:#143d2a; color:#8ce99a; border-color:#2f9e44; }
     .banner.info { background:#132339; color:#a5d8ff; border-color:#339af0; }
 
-    .chips, .roles, .event-grid { display:grid; gap:10px; }
+    .chips, .roles, .event-grid { display:grid; gap:12px; }
     .chip, .role {
-      text-align:left; border-radius: 14px; padding: 16px; color:#fff;
+      text-align:left; border-radius: 16px; padding: 18px 16px; color:#fff;
       border: 1px solid var(--line); cursor: pointer; width: 100%;
-      font: inherit;
+      font: inherit; min-height: 72px;
     }
     .chip {
-      background: #152238; font-size: 1.15rem; font-weight: 700;
+      background: #152238; font-size: 1.25rem; font-weight: 700;
     }
-    .chip small { display:block; margin-top:4px; color:var(--muted); font-weight:500; font-size:.8rem; }
+    .chip small { display:block; margin-top:6px; color:var(--muted); font-weight:500; font-size:.9rem; }
     .chip.selected, .role.selected {
       box-shadow: 0 0 0 3px rgba(77,171,247,.35);
       border-color: #74c0fc;
     }
-    .role .kicker { opacity:.85; font-size:.72rem; letter-spacing:.06em; }
-    .role .name { font-size:1.15rem; font-weight:800; margin-top:2px; }
-    .role .desc { opacity:.9; font-size:.85rem; margin-top:6px; }
+    .role .kicker { opacity:.85; font-size:.8rem; letter-spacing:.06em; }
+    .role .name { font-size:1.28rem; font-weight:800; margin-top:4px; }
+    .role .desc { opacity:.9; font-size:.95rem; margin-top:8px; }
 
     .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .event-grid .btn { min-height: 72px; font-size: 1.12rem; }
+    .event-grid .btn { min-height: 78px; font-size: 1.2rem; }
     .hint { color: var(--muted); font-size: .8rem; line-height: 1.35; margin: 8px 0 0; }
     .count { font-size: 1.3rem; font-weight: 800; }
     .stack { display:grid; gap:12px; }
@@ -245,7 +253,7 @@
         <label for="password">Contraseña del grupo</label>
         <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
         <button class="btn btn-primary" id="btnLogin" type="button">Continuar</button>
-        <p class="hint">Si no la tienes, pídesela a Fredy, Ever o Katherinne.</p>
+        <p class="hint">Acceso solo para el equipo del proyecto.</p>
       </div>
     </div>
   </section>
@@ -386,7 +394,7 @@
     const DB_NAME = "comedor_evidencias_db";
     const DB_STORE = "fotos";
     const PASS_HASH = "9f9cad286c4b63f47316191751c3d6b70c45000b014ebc48ac0e34f00c33dfd6";
-    const AUTH_KEY = "comedor_auth_ok_v1";
+    const AUTH_KEY = "comedor_auth_ok_v2";
     const ROLE_META = {
       A: { label: "A Entrada", desc: "Entrada (tiquetes)", title: "Función: tiquetes" },
       B: { label: "B Piso 1", desc: "Piso 1 (caja)", title: "Función: caja piso 1" },
@@ -471,13 +479,16 @@
       } catch (_) {}
     }
     function clientAuthed() {
-      return sessionStorage.getItem(AUTH_KEY) === "1" || localStorage.getItem(AUTH_KEY) === "1";
+      // Solo sesión de pestaña actual: al reabrir la app pide contraseña otra vez
+      return sessionStorage.getItem(AUTH_KEY) === "1";
     }
     async function clientLogin(password) {
       if ((await sha256(password)) !== PASS_HASH) throw new Error("Contraseña incorrecta");
       sessionStorage.setItem(AUTH_KEY, "1");
-      localStorage.setItem(AUTH_KEY, "1");
       sessionStorage.setItem("comedor_pass", password);
+      // limpia auth vieja persistente
+      localStorage.removeItem("comedor_auth_ok_v1");
+      localStorage.removeItem(AUTH_KEY);
     }
 
     function openDb() {
@@ -565,10 +576,12 @@
     }
 
     function routeAfterAuth() {
-      if (!state.observer) return showView("viewWho");
-      if (!state.role) return showView("viewRole");
-      showView("viewWork");
-      refreshUI();
+      // Flujo fijo tras contraseña: quién → rol → función
+      state.observer = "";
+      state.role = "";
+      saveState();
+      showView("viewWho");
+      renderNameChips();
     }
 
     function renderNameChips() {
@@ -987,16 +1000,22 @@
 
     async function boot() {
       await loadConfig();
+      // Siempre empieza en contraseña (no salta a rol/nombre)
+      localStorage.removeItem("comedor_auth_ok_v1");
+      localStorage.removeItem(AUTH_KEY);
       try {
         const me = await api("/api/me");
         HAS_SERVER = true;
-        if (me.authed) routeAfterAuth();
-        else showView("viewLogin");
+        // si el server ya tiene cookie, cerramos para forzar login visible
+        if (me.authed) {
+          try { await api("/api/logout", { method: "POST", body: "{}" }); } catch (_) {}
+        }
       } catch (_) {
         HAS_SERVER = false;
-        if (clientAuthed()) routeAfterAuth();
-        else showView("viewLogin");
       }
+      sessionStorage.removeItem(AUTH_KEY);
+      showView("viewLogin");
+      renderNameChips();
     }
 
     el("btnLogin").addEventListener("click", async () => {
