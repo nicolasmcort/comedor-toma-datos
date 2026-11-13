@@ -1,22 +1,18 @@
 /**
  * Apps Script → Google Sheets + Drive
  *
- * HOJA: https://docs.google.com/spreadsheets/d/1oMKJriTuw1KAhWNpn4ArBwk3-zKmiWKL9iLmyaKVxO8/edit
+ * HOJA (cuenta personal): https://docs.google.com/spreadsheets/d/1D5kz4m6Uxga6ALAK6cft2TG-_BmKtmH5e3IeivxSSCk/edit
  * FOTOS: carpeta de Drive "Evidencias Comedor" (se crea sola en la 1ª subida)
  *
- * IMPORTANTE: publicar con Gmail PERSONAL (no UNAL), para poder elegir
- * acceso "Cualquier persona".
- *
- * Publicar una vez:
- * 1. Entra a script.google.com con tu Gmail personal
- * 2. Nuevo proyecto → pegar este código
- * 3. Implementar → Aplicación web
+ * Publicar UNA VEZ con la MISMA cuenta dueña de la hoja (ideal: Gmail personal):
+ * 1. script.google.com → Nuevo proyecto → pegar este código
+ * 2. Implementar → Aplicación web
  *    - Ejecutar como: Yo
- *    - Acceso: Cualquier persona
- * 4. Copiar URL /exec → pegarla en docs/config.json (cloudScriptUrl)
+ *    - Acceso: Cualquier persona  ← debe decir exactamente eso (no "de mi organización")
+ * 3. Copiar URL /exec → pegarla en docs/config.json (cloudScriptUrl) o enviármela
  */
 
-var SPREADSHEET_ID = "1oMKJriTuw1KAhWNpn4ArBwk3-zKmiWKL9iLmyaKVxO8";
+var SPREADSHEET_ID = "1D5kz4m6Uxga6ALAK6cft2TG-_BmKtmH5e3IeivxSSCk";
 var FOLDER_NAME = "Evidencias Comedor";
 var APP_PASSWORD = "unalcomedor";
 
