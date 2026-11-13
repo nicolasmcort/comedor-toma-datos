@@ -1,18 +1,19 @@
 /**
  * Apps Script → Google Sheets + Drive
  *
- * HOJA (cuenta personal): https://docs.google.com/spreadsheets/d/1D5kz4m6Uxga6ALAK6cft2TG-_BmKtmH5e3IeivxSSCk/edit
- * FOTOS: carpeta de Drive "Evidencias Comedor" (se crea sola en la 1ª subida)
+ * HOJA (cuenta personal):
+ * https://docs.google.com/spreadsheets/d/1k3cfW-U_YUYRNMiiZSZMaoOmLkjWd7R7fzv5fqNkfe4/edit
+ * FOTOS: carpeta Drive "Evidencias Comedor" (se crea sola en la 1ª subida)
  *
- * Publicar UNA VEZ con la MISMA cuenta dueña de la hoja (ideal: Gmail personal):
+ * Publicar UNA VEZ con la misma cuenta personal:
  * 1. script.google.com → Nuevo proyecto → pegar este código
  * 2. Implementar → Aplicación web
  *    - Ejecutar como: Yo
- *    - Acceso: Cualquier persona  ← debe decir exactamente eso (no "de mi organización")
- * 3. Copiar URL /exec → pegarla en docs/config.json (cloudScriptUrl) o enviármela
+ *    - Acceso: Cualquier persona
+ * 3. Copiar URL /exec → docs/config.json (cloudScriptUrl) o pásasela al asistente
  */
 
-var SPREADSHEET_ID = "1D5kz4m6Uxga6ALAK6cft2TG-_BmKtmH5e3IeivxSSCk";
+var SPREADSHEET_ID = "1k3cfW-U_YUYRNMiiZSZMaoOmLkjWd7R7fzv5fqNkfe4";
 var FOLDER_NAME = "Evidencias Comedor";
 var APP_PASSWORD = "unalcomedor";
 
