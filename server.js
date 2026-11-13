@@ -117,7 +117,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, "public"), {
+const staticDir = path.join(__dirname, "docs");
+
+app.use(express.static(staticDir, {
   extensions: ["html"],
   setHeaders(res, filePath) {
     if (filePath.endsWith(".html")) {
@@ -127,7 +129,7 @@ app.use(express.static(path.join(__dirname, "public"), {
 }));
 
 app.get("*", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(staticDir, "index.html"));
 });
 
 app.listen(PORT, "0.0.0.0", () => {
