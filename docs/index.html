@@ -191,8 +191,31 @@
     .role .name { font-size:1.28rem; font-weight:800; margin-top:4px; }
     .role .desc { opacity:.9; font-size:.95rem; margin-top:8px; }
 
-    .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
     .event-grid .btn { min-height: 78px; font-size: 1.2rem; }
+    .tools-stack { display:grid; gap:16px; }
+    .cloud-status {
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: .92rem;
+      line-height: 1.4;
+      border: 1px solid;
+    }
+    .cloud-status.ok {
+      background: #143d2a;
+      color: #8ce99a;
+      border-color: #2f9e44;
+    }
+    .cloud-status.warn {
+      background: #5c3d00;
+      color: #ffe8a3;
+      border-color: #e67700;
+    }
+    .cloud-status.info {
+      background: #132339;
+      color: #a5d8ff;
+      border-color: #339af0;
+    }
     .hint { color: var(--muted); font-size: .8rem; line-height: 1.35; margin: 8px 0 0; }
     .count { font-size: 1.3rem; font-weight: 800; }
     .stack { display:grid; gap:12px; }
@@ -337,14 +360,17 @@
         </div>
 
         <div class="card">
-          <button class="btn btn-ghost" id="btnSync" type="button">☁ Subir pendientes a la nube</button>
-          <div class="row2" style="margin-top:8px">
-            <button class="btn btn-ghost" id="btnExportCsv" type="button">CSV</button>
-            <button class="btn btn-ghost" id="btnExportXls" type="button">Excel</button>
+          <div id="cloudStatus" class="cloud-status info">Revisando estado de la nube…</div>
+          <div class="tools-stack" style="margin-top:16px">
+            <button class="btn btn-ghost" id="btnSync" type="button">☁ Subir pendientes a la nube</button>
+            <div class="row2">
+              <button class="btn btn-ghost" id="btnExportCsv" type="button">CSV</button>
+              <button class="btn btn-ghost" id="btnExportXls" type="button">Excel</button>
+            </div>
+            <button class="btn btn-ghost" id="btnExportEv" type="button">Descargar evidencias (local)</button>
+            <button class="btn btn-ghost" id="btnLogout" type="button">Cerrar acceso</button>
           </div>
-          <button class="btn btn-ghost" id="btnExportEv" type="button">Descargar evidencias (local)</button>
-          <button class="btn btn-ghost" id="btnLogout" type="button">Cerrar acceso</button>
-          <details style="margin-top:10px">
+          <details style="margin-top:16px">
             <summary>Últimos eventos</summary>
             <div class="log" id="log"></div>
           </details>
@@ -555,13 +581,59 @@
       ].join(" · ");
     }
 
+    function pendingCounts() {
+      const eventos = state.events.filter((e) => e.origen !== "sheets").length;
+      const fotos = state.evidenciasMeta.filter((e) => e.origen !== "drive").length;
+      return { eventos, fotos, total: eventos + fotos };
+    }
+
+    function updateCloudStatus() {
+      const box = el("cloudStatus");
+      if (!box) return;
+      const online = navigator.onLine;
+      const cloudOk = !!(HAS_SERVER || CLOUD_SCRIPT_URL);
+      const { eventos, fotos, total } = pendingCounts();
+
+      if (!cloudOk) {
+        box.className = "cloud-status warn";
+        box.textContent = "Nube no configurada. Usa las descargas locales (CSV/Excel/evidencias).";
+        return;
+      }
+      if (!online) {
+        box.className = "cloud-status warn";
+        box.textContent = total
+          ? `Sin red · ${total} pendiente(s) en el celular (${eventos} eventos, ${fotos} fotos). Cuando vuelva, se suben o pulsa «Subir pendientes».`
+          : "Sin red. Cuando vuelva la conexión, todo lo nuevo se podrá subir a la nube.";
+        return;
+      }
+      if (total === 0) {
+        box.className = "cloud-status ok";
+        box.textContent = "Todo está en la nube (Sheets y Drive al día).";
+      } else {
+        box.className = "cloud-status warn";
+        box.textContent = `Hay ${total} pendiente(s) por subir: ${eventos} evento(s) y ${fotos} foto(s). Pulsa «Subir pendientes a la nube».`;
+      }
+    }
+
     function updateBanners() {
       const online = navigator.onLine;
       el("pillNet").textContent = online ? "Red OK" : "Sin red";
       el("pillNet").className = online ? "pill on" : "pill warn";
       const cloudOk = !!(HAS_SERVER || CLOUD_SCRIPT_URL);
-      el("pillCloud").textContent = cloudOk ? "Nube lista" : "Nube off";
-      el("pillCloud").className = cloudOk ? "pill on" : "pill warn";
+      const { total } = pendingCounts();
+      if (!cloudOk) {
+        el("pillCloud").textContent = "Nube off";
+        el("pillCloud").className = "pill warn";
+      } else if (!online) {
+        el("pillCloud").textContent = total ? `Pendientes ${total}` : "Nube lista";
+        el("pillCloud").className = total ? "pill warn" : "pill on";
+      } else if (total === 0) {
+        el("pillCloud").textContent = "En la nube";
+        el("pillCloud").className = "pill on";
+      } else {
+        el("pillCloud").textContent = `Pendientes ${total}`;
+        el("pillCloud").className = "pill warn";
+      }
 
       const b = el("netBanner");
       if (!online) {
@@ -573,6 +645,7 @@
       } else {
         b.classList.remove("show");
       }
+      updateCloudStatus();
     }
 
     function routeAfterAuth() {
