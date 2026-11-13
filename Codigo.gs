@@ -1,27 +1,23 @@
 /**
- * Apps Script para sync de la app de toma de datos → Google Sheets + Drive
+ * Apps Script → Google Sheets + Drive
  *
  * HOJA: https://docs.google.com/spreadsheets/d/1d9ENgcMqzBSVAOwZEWOjHpchaviAVXHoeKjGcmcR1WY/edit
+ * FOTOS: carpeta de Drive "Evidencias Comedor" (se crea sola en la 1ª subida)
  *
- * Cómo publicar (una sola vez):
- * 1. https://script.google.com → Nuevo proyecto
- * 2. Pega este código
- * 3. Guardar
- * 4. Implementar → Nueva implementación → Aplicación web
+ * Publicar una vez:
+ * 1. script.google.com → Nuevo proyecto → pegar este código
+ * 2. Implementar → Aplicación web
  *    - Ejecutar como: Yo
- *    - Quién tiene acceso: Cualquier persona
- * 5. Copiar la URL /exec y pegarla en la app
- *
- * La primera subida de foto crea la carpeta "Evidencias Comedor" en tu Drive.
+ *    - Acceso: Cualquier persona
+ * 3. Copiar URL /exec → pegarla en docs/config.json (cloudScriptUrl)
  */
 
 var SPREADSHEET_ID = "1d9ENgcMqzBSVAOwZEWOjHpchaviAVXHoeKjGcmcR1WY";
 var FOLDER_NAME = "Evidencias Comedor";
-// Debe coincidir con la contraseña del grupo en la app
 var APP_PASSWORD = "unalcomedor";
 
 function doGet() {
-  return json_({ ok: true, service: "comedor-toma-datos", version: 3 });
+  return json_({ ok: true, service: "comedor-toma-datos", version: 4, folder: FOLDER_NAME });
 }
 
 function doPost(e) {
@@ -60,31 +56,16 @@ function doPost(e) {
       return json_({ ok: true, type: "batch", added: added });
     }
 
+    // Solo Drive (sin hoja "evidencias")
     if (data.type === "evidencia" && data.meta && data.base64) {
       var result = saveEvidence_(data);
-      var shE = ss.getSheetByName("evidencias");
-      if (!shE) {
-        shE = ss.insertSheet("evidencias");
-        shE.appendRow([
-          "id", "session_id", "fecha", "hora", "timestamp_iso",
-          "rol", "observador", "tipo", "nombre_archivo", "drive_url", "drive_id", "notas"
-        ]);
-      }
-      if (!idExists_(shE, String(data.meta.id))) {
-        shE.appendRow([
-          data.meta.id,
-          data.meta.session_id || "",
-          data.meta.fecha || "",
-          data.meta.hora || "",
-          data.meta.timestamp_iso || "",
-          data.meta.rol || "",
-          data.meta.observador || "",
-          data.meta.tipo || "",
-          data.meta.nombre_archivo || "",
-          result.url,
-          result.id,
-          data.meta.notas || ""
-        ]);
+      // deja rastro en eventos si viene eventRow
+      if (data.eventRow && data.eventRow.length) {
+        var shEv = ss.getSheetByName("eventos");
+        var eid = String(data.eventRow[0]);
+        // mete URL de Drive en notas (columna N = índice 13) si viene vacía
+        if (!data.eventRow[13]) data.eventRow[13] = result.url;
+        if (!idExists_(shEv, eid)) shEv.appendRow(data.eventRow);
       }
       return json_({ ok: true, type: "evidencia", id: data.meta.id, url: result.url, fileId: result.id });
     }

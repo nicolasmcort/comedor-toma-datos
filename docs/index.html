@@ -17,36 +17,52 @@
       --accent: #4dabf7;
       --ok: #37b24d;
       --danger: #fa5252;
-      --warn: #f59f00;
       --a: #7950f2;
       --b: #12b886;
       --c: #fd7e14;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --shadow: 0 12px 32px rgba(0,0,0,.4);
       --radius: 18px;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-t: env(safe-area-inset-top, 0px);
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { height: 100%; }
-    body {
+    html, body {
+      height: 100%;
       margin: 0;
-      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-      background:
-        radial-gradient(1200px 600px at 10% -10%, #1b3a6b 0%, transparent 55%),
-        radial-gradient(900px 500px at 110% 0%, #3b1d6e 0%, transparent 45%),
-        var(--bg);
+      background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
     }
-    .app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding: 14px 14px 28px; }
+    body {
+      min-height: 100dvh;
+      background:
+        radial-gradient(900px 500px at 50% -20%, #1b3a6b 0%, transparent 60%),
+        var(--bg);
+    }
     .hidden { display: none !important; }
 
-    /* LOGIN */
-    .login-wrap {
-      min-height: calc(100vh - 28px);
-      display: flex; flex-direction: column; justify-content: center; gap: 18px;
+    .screen {
+      min-height: 100dvh;
+      min-height: 100vh;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      padding: calc(12px + var(--safe-t)) 16px calc(16px + var(--safe-b));
     }
-    .brand {
-      text-align: center;
+    .shell {
+      width: 100%;
+      max-width: 430px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
     }
+    .shell.center {
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .brand { text-align: center; margin-bottom: 4px; }
     .brand .badge {
       display: inline-block;
       background: rgba(77,171,247,.15);
@@ -54,12 +70,11 @@
       border: 1px solid rgba(77,171,247,.35);
       padding: 6px 12px;
       border-radius: 999px;
-      font-size: .78rem;
-      letter-spacing: .04em;
+      font-size: .75rem;
       margin-bottom: 10px;
     }
-    .brand h1 { margin: 0; font-size: 1.7rem; letter-spacing: -.02em; }
-    .brand p { margin: 8px 0 0; color: var(--muted); line-height: 1.4; }
+    .brand h1 { margin: 0; font-size: 1.65rem; }
+    .brand p { margin: 8px 0 0; color: var(--muted); line-height: 1.4; font-size: .92rem; }
 
     .card {
       background: linear-gradient(180deg, var(--panel2), var(--panel));
@@ -68,17 +83,21 @@
       padding: 16px;
       box-shadow: var(--shadow);
     }
+    .step-title { margin: 0 0 6px; font-size: 1.25rem; }
+    .step-sub { margin: 0 0 14px; color: var(--muted); font-size: .9rem; line-height: 1.4; }
+
     label { display:block; font-size:.78rem; color:var(--muted); margin-bottom:6px; }
-    input[type=password], input[type=text] {
+    input[type=password] {
       width: 100%;
       border: 1px solid var(--line);
       background: #0b1322;
       color: var(--text);
       border-radius: 12px;
-      padding: 14px 14px;
+      padding: 14px;
       font-size: 1.05rem;
       margin-bottom: 12px;
     }
+
     .btn {
       border: 0;
       border-radius: 14px;
@@ -87,291 +106,254 @@
       padding: 14px 16px;
       font-size: 1.05rem;
       font-weight: 750;
-      color: white;
+      color: #fff;
       cursor: pointer;
-      transition: transform .08s ease, filter .15s ease, opacity .15s;
     }
     .btn:active { transform: scale(.98); }
-    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn:disabled { opacity: .4; }
     .btn-primary { background: linear-gradient(135deg, #339af0, #7048e8); }
     .btn-ok { background: linear-gradient(135deg, #2f9e44, #12b886); }
     .btn-danger { background: linear-gradient(135deg, #e03131, #c2255c); }
-    .btn-ghost {
-      background: #24334d;
-      color: #dbe4f0;
-      font-weight: 650;
-      min-height: 46px;
-      font-size: .95rem;
-    }
+    .btn-ghost { background: #24334d; font-weight: 650; min-height: 46px; font-size: .95rem; }
     .btn-a { background: linear-gradient(135deg, #845ef7, #5f3dc4); }
     .btn-b { background: linear-gradient(135deg, #20c997, #0ca678); }
     .btn-c { background: linear-gradient(135deg, #ff922b, #f76707); }
     .btn-ev { background: linear-gradient(135deg, #339af0, #1c7ed6); }
     .btn-undo { background: #343a40; border: 1px solid #868e96; }
-
-    /* TOP BAR */
-    .topbar {
-      position: sticky; top: 0; z-index: 20;
-      margin: -14px -14px 12px;
-      padding: 12px 14px 10px;
-      background: rgba(7,11,20,.88);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(42,58,85,.8);
+    .btn-back {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      min-height: 42px;
+      font-size: .9rem;
+      font-weight: 600;
+      margin-bottom: 10px;
     }
-    .clock-row { text-align: center; }
-    .clock-row .date { color: var(--muted); font-size: .9rem; }
-    .clock-row .time {
+
+    .topbar {
+      text-align: center;
+      padding: 4px 0 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(7,11,20,.92);
+      backdrop-filter: blur(8px);
+    }
+    .topbar .date { color: var(--muted); font-size: .88rem; }
+    .topbar .time {
       font-variant-numeric: tabular-nums;
-      font-size: 2.35rem;
+      font-size: 2.4rem;
       font-weight: 800;
       letter-spacing: .03em;
       line-height: 1.05;
     }
     .pills { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:8px; }
     .pill {
-      font-size: .75rem;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: #1c2940;
-      color: var(--muted);
-      border: 1px solid var(--line);
+      font-size: .72rem; padding: 4px 10px; border-radius: 999px;
+      background: #1c2940; color: var(--muted); border: 1px solid var(--line);
     }
     .pill.on { background:#143d2a; color:#8ce99a; border-color:#2f9e44; }
     .pill.warn { background:#5c3d00; color:#ffe8a3; border-color:#e67700; }
     .pill.off { background:#3b1f1f; color:#ffa8a8; border-color:#fa5252; }
 
     .banner {
-      display:none;
-      margin-bottom: 12px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-size: .86rem;
-      line-height: 1.35;
-      border: 1px solid;
+      display:none; margin-bottom: 12px; padding: 10px 12px; border-radius: 12px;
+      font-size: .86rem; line-height: 1.35; border: 1px solid;
     }
     .banner.show { display:block; }
     .banner.warn { background:#5c3d00; color:#ffe8a3; border-color:#e67700; }
     .banner.ok { background:#143d2a; color:#8ce99a; border-color:#2f9e44; }
+    .banner.info { background:#132339; color:#a5d8ff; border-color:#339af0; }
 
-    .step-title { margin: 0 0 6px; font-size: 1.15rem; }
-    .step-sub { margin: 0 0 14px; color: var(--muted); font-size: .9rem; line-height: 1.35; }
-
-    .chips { display:grid; gap:10px; }
-    .chip {
-      text-align:left;
-      background: #152238;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 16px;
-      color: var(--text);
-      font-size: 1.15rem;
-      font-weight: 700;
-      cursor: pointer;
+    .chips, .roles, .event-grid { display:grid; gap:10px; }
+    .chip, .role {
+      text-align:left; border-radius: 14px; padding: 16px; color:#fff;
+      border: 1px solid var(--line); cursor: pointer; width: 100%;
+      font: inherit;
     }
-    .chip.selected {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(77,171,247,.25);
-      background: #1a2f4d;
+    .chip {
+      background: #152238; font-size: 1.15rem; font-weight: 700;
     }
     .chip small { display:block; margin-top:4px; color:var(--muted); font-weight:500; font-size:.8rem; }
-
-    .roles { display:grid; gap:10px; }
-    .role {
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 16px;
-      text-align:left;
-      color:white;
-      cursor:pointer;
+    .chip.selected, .role.selected {
+      box-shadow: 0 0 0 3px rgba(77,171,247,.35);
+      border-color: #74c0fc;
     }
-    .role.selected { outline: 3px solid rgba(255,255,255,.35); }
-    .role .kicker { opacity:.85; font-size:.75rem; letter-spacing:.06em; }
-    .role .name { font-size:1.2rem; font-weight:800; margin-top:2px; }
+    .role .kicker { opacity:.85; font-size:.72rem; letter-spacing:.06em; }
+    .role .name { font-size:1.15rem; font-weight:800; margin-top:2px; }
     .role .desc { opacity:.9; font-size:.85rem; margin-top:6px; }
 
-    .session-actions { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top: 8px; }
-    .event-grid { display:grid; gap:12px; margin-top: 8px; }
-    .event-grid .btn { min-height: 72px; font-size: 1.15rem; }
-    .flash { animation: flash .25s ease; }
-    @keyframes flash { from { filter: brightness(1.35); } to { filter: brightness(1); } }
-
-    .toast {
-      position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
-      background: #111827; color: white; border: 1px solid #374151;
-      padding: 10px 14px; border-radius: 12px; font-size: .9rem;
-      opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 80;
-      max-width: 92vw; text-align: center; box-shadow: var(--shadow);
-    }
-    .toast.show { opacity: 1; }
-
-    /* CAMERA MODAL */
-    .modal {
-      position: fixed; inset: 0; z-index: 60;
-      background: rgba(0,0,0,.72);
-      display:flex; align-items:flex-end; justify-content:center;
-      padding: 12px;
-    }
-    .modal-card {
-      width: min(480px, 100%);
-      background: #0f172a;
-      border: 1px solid var(--line);
-      border-radius: 20px 20px 16px 16px;
-      overflow: hidden;
-      box-shadow: var(--shadow);
-    }
-    .modal-card header {
-      padding: 12px 14px;
-      display:flex; justify-content:space-between; align-items:center;
-      border-bottom: 1px solid var(--line);
-    }
-    .cam-stage { position: relative; background: #000; aspect-ratio: 3/4; max-height: 58vh; }
-    .cam-stage video, .cam-stage canvas, .cam-stage img {
-      width: 100%; height: 100%; object-fit: cover; display:block;
-    }
-    .cam-overlay {
-      position:absolute; left:0; right:0; bottom:0;
-      padding: 14px 12px 16px;
-      background: linear-gradient(transparent, rgba(0,0,0,.82));
-      color: white;
-      pointer-events:none;
-    }
-    .cam-overlay .ov-time {
-      font-size: 2rem; font-weight: 900; font-variant-numeric: tabular-nums;
-      text-shadow: 0 2px 8px rgba(0,0,0,.8);
-    }
-    .cam-overlay .ov-date { font-size: 1rem; opacity: .95; margin-top: 2px; }
-    .cam-overlay .ov-meta { font-size: .8rem; opacity: .9; margin-top: 6px; }
-    .modal-actions { display:grid; grid-template-columns: 1fr 1fr; gap:8px; padding: 12px; }
-    .thumbs { display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px; }
-    .thumbs figure {
-      margin:0; border-radius:12px; overflow:hidden; border:1px solid var(--line); background:#0b1322;
-    }
+    .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .event-grid .btn { min-height: 72px; font-size: 1.12rem; }
+    .hint { color: var(--muted); font-size: .8rem; line-height: 1.35; margin: 8px 0 0; }
+    .count { font-size: 1.3rem; font-weight: 800; }
+    .stack { display:grid; gap:12px; }
+    .thumbs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .thumbs figure { margin:0; border-radius:12px; overflow:hidden; border:1px solid var(--line); background:#0b1322; }
     .thumbs img { width:100%; height:110px; object-fit:cover; display:block; }
     .thumbs figcaption { font-size:.68rem; color:var(--muted); padding:5px 7px; }
-
-    .hint { color: var(--muted); font-size: .8rem; line-height: 1.35; margin: 8px 0 0; }
-    .count { font-size: 1.35rem; font-weight: 800; }
-    details summary { cursor:pointer; color: var(--accent); margin-bottom: 8px; }
-    .log { max-height: 160px; overflow:auto; font-size:.8rem; color:var(--muted); }
+    details summary { cursor:pointer; color:var(--accent); margin-bottom:8px; }
+    .log { max-height:140px; overflow:auto; font-size:.8rem; color:var(--muted); }
     .log div { padding:5px 0; border-bottom:1px solid #243044; }
-    .log strong { color: var(--text); }
-    .footer-links { margin-top: 10px; font-size: .8rem; color: var(--muted); }
-    .footer-links a { color: #74c0fc; }
+    .log strong { color:var(--text); }
+    .footer-links { margin-top:10px; font-size:.8rem; color:var(--muted); }
+    .footer-links a { color:#74c0fc; }
+
+    .toast {
+      position: fixed; left: 50%; bottom: calc(18px + var(--safe-b));
+      transform: translateX(-50%); background:#111827; color:#fff;
+      border:1px solid #374151; padding:10px 14px; border-radius:12px;
+      font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s;
+      z-index:90; max-width:92vw; text-align:center; box-shadow:var(--shadow);
+    }
+    .toast.show { opacity:1; }
+
+    .modal {
+      position:fixed; inset:0; z-index:70; background:rgba(0,0,0,.75);
+      display:flex; align-items:flex-end; justify-content:center; padding:12px;
+    }
+    .modal-card {
+      width:min(430px,100%); background:#0f172a; border:1px solid var(--line);
+      border-radius:20px 20px 16px 16px; overflow:hidden; box-shadow:var(--shadow);
+    }
+    .modal-card header {
+      padding:12px 14px; display:flex; justify-content:space-between; align-items:center;
+      border-bottom:1px solid var(--line);
+    }
+    .cam-stage { position:relative; background:#000; aspect-ratio:3/4; max-height:56vh; }
+    .cam-stage video, .cam-stage img { width:100%; height:100%; object-fit:cover; display:block; }
+    .cam-overlay {
+      position:absolute; left:0; right:0; bottom:0; padding:14px 12px 16px;
+      background:linear-gradient(transparent, rgba(0,0,0,.85)); color:#fff; pointer-events:none;
+    }
+    .cam-overlay .ov-time { font-size:2rem; font-weight:900; font-variant-numeric:tabular-nums; }
+    .cam-overlay .ov-date { font-size:1rem; margin-top:2px; }
+    .cam-overlay .ov-meta { font-size:.8rem; opacity:.9; margin-top:6px; }
+    .modal-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:12px; }
   </style>
 </head>
 <body>
-  <div class="app">
-    <!-- LOGIN -->
-    <section id="viewLogin" class="login-wrap">
+  <!-- 1. LOGIN -->
+  <section id="viewLogin" class="screen">
+    <div class="shell center">
       <div class="brand">
         <div class="badge">UNAL · Optimización</div>
         <h1>Toma de datos</h1>
-        <p>Comedor · filas y cajas. Solo el equipo del proyecto.</p>
+        <p>Comedor · solo el equipo del proyecto</p>
       </div>
       <div class="card">
         <label for="password">Contraseña del grupo</label>
         <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
-        <button class="btn btn-primary" id="btnLogin" type="button">Entrar</button>
+        <button class="btn btn-primary" id="btnLogin" type="button">Continuar</button>
         <p class="hint">Si no la tienes, pídesela a Fredy, Ever o Katherinne.</p>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- APP -->
-    <section id="viewApp" class="hidden">
-      <div class="topbar">
-        <div class="clock-row">
-          <div class="date" id="dateLine">—</div>
-          <div class="time" id="clockLine">--:--:--</div>
+  <!-- 2. QUIÉN -->
+  <section id="viewWho" class="screen hidden">
+    <div class="shell center">
+      <div class="card" style="width:100%">
+        <h2 class="step-title">¿Quién eres?</h2>
+        <p class="step-sub">Elige tu nombre para seguir.</p>
+        <div class="chips" id="nameChips"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. ROL -->
+  <section id="viewRole" class="screen hidden">
+    <div class="shell center">
+      <div class="card" style="width:100%">
+        <button class="btn btn-back" id="backToWho" type="button">← Cambiar nombre</button>
+        <h2 class="step-title">¿Qué rol haces hoy?</h2>
+        <p class="step-sub">Una persona por punto.</p>
+        <div class="roles">
+          <button class="role btn-a" data-role="A" type="button">
+            <div class="kicker">ROL A</div>
+            <div class="name">Entrada · Tiquetes</div>
+            <div class="desc">Entregas de tiquete a Piso 1 y Piso 2</div>
+          </button>
+          <button class="role btn-b" data-role="B" type="button">
+            <div class="kicker">ROL B</div>
+            <div class="name">Piso 1 · Caja</div>
+            <div class="desc">Inicio y fin de cada pago</div>
+          </button>
+          <button class="role btn-c" data-role="C" type="button">
+            <div class="kicker">ROL C</div>
+            <div class="name">Piso 2 · Caja</div>
+            <div class="desc">Inicio y fin de cada pago</div>
+          </button>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. FUNCIÓN / TRABAJO -->
+  <section id="viewWork" class="screen hidden">
+    <div class="shell">
+      <div class="topbar">
+        <div class="date" id="dateLine">—</div>
+        <div class="time" id="clockLine">--:--:--</div>
         <div class="pills">
           <span class="pill" id="pillWho">—</span>
           <span class="pill off" id="pillSession">Sin sesión</span>
           <span class="pill" id="pillNet">Red…</span>
+          <span class="pill" id="pillCloud">Nube…</span>
         </div>
       </div>
 
       <div class="banner" id="netBanner"></div>
 
-      <!-- STEP WHO -->
-      <div class="card" id="stepWho">
-        <h2 class="step-title">1. ¿Quién eres?</h2>
-        <p class="step-sub">Toca tu nombre. Se guarda en este celular.</p>
-        <div class="chips" id="nameChips"></div>
-      </div>
+      <div class="stack">
+        <div class="card">
+          <button class="btn btn-back" id="backToRole" type="button">← Cambiar rol</button>
+          <h2 class="step-title" id="workTitle">Tu función</h2>
+          <p class="step-sub">Eventos en sesión: <span class="count" id="sessionCount">0</span></p>
+          <div class="row2">
+            <button class="btn btn-ok" id="btnStart" type="button">INICIAR</button>
+            <button class="btn btn-danger" id="btnStop" type="button" disabled>DETENER</button>
+          </div>
+          <p class="hint" id="sessionMeta">Pulsa INICIAR cuando estén listos.</p>
+          <div id="eventsWrap" class="hidden" style="margin-top:12px">
+            <div class="event-grid" id="actions"></div>
+            <button class="btn btn-undo" id="btnUndo" type="button" disabled style="margin-top:10px">↩ Deshacer último</button>
+          </div>
+        </div>
 
-      <!-- STEP ROLE -->
-      <div class="card hidden" id="stepRole">
-        <h2 class="step-title">2. ¿Qué rol haces hoy?</h2>
-        <p class="step-sub">Una persona por punto de observación.</p>
-        <div class="roles">
-          <button class="role btn-a" data-role="A" type="button">
-            <div class="kicker">ROL A</div>
-            <div class="name">Entrada · Tiquetes</div>
-            <div class="desc">Cuentas entregas de tiquete a Piso 1 y Piso 2</div>
-          </button>
-          <button class="role btn-b" data-role="B" type="button">
-            <div class="kicker">ROL B</div>
-            <div class="name">Piso 1 · Caja</div>
-            <div class="desc">Marcas inicio y fin de cada pago</div>
-          </button>
-          <button class="role btn-c" data-role="C" type="button">
-            <div class="kicker">ROL C</div>
-            <div class="name">Piso 2 · Caja</div>
-            <div class="desc">Marcas inicio y fin de cada pago</div>
-          </button>
+        <div class="card">
+          <h2 class="step-title">Evidencia</h2>
+          <p class="step-sub">Foto del lugar + hora/fecha pegadas. Con red se sube sola a Drive (<strong>Evidencias Comedor</strong>). Sin red: descárgala después.</p>
+          <button class="btn btn-ev" id="btnOpenCam" type="button">📷 Tomar evidencia</button>
+          <div class="thumbs" id="thumbs"></div>
+        </div>
+
+        <div class="card">
+          <button class="btn btn-ghost" id="btnSync" type="button">☁ Subir pendientes a la nube</button>
+          <div class="row2" style="margin-top:8px">
+            <button class="btn btn-ghost" id="btnExportCsv" type="button">CSV</button>
+            <button class="btn btn-ghost" id="btnExportXls" type="button">Excel</button>
+          </div>
+          <button class="btn btn-ghost" id="btnExportEv" type="button">Descargar evidencias (local)</button>
+          <button class="btn btn-ghost" id="btnLogout" type="button">Cerrar acceso</button>
+          <details style="margin-top:10px">
+            <summary>Últimos eventos</summary>
+            <div class="log" id="log"></div>
+          </details>
+          <div class="footer-links">
+            Datos:
+            <a href="https://docs.google.com/spreadsheets/d/1d9ENgcMqzBSVAOwZEWOjHpchaviAVXHoeKjGcmcR1WY/edit" target="_blank" rel="noopener">Google Sheets</a>
+            · Fotos: Drive → <code>Evidencias Comedor</code>
+          </div>
         </div>
       </div>
+    </div>
+  </section>
 
-      <!-- STEP WORK -->
-      <div class="card hidden" id="stepWork">
-        <h2 class="step-title">3. Sesión de toma</h2>
-        <p class="step-sub">Inicien casi juntos. Eventos en sesión: <span class="count" id="sessionCount">0</span></p>
-        <div class="session-actions">
-          <button class="btn btn-ok" id="btnStart" type="button">INICIAR</button>
-          <button class="btn btn-danger" id="btnStop" type="button" disabled>DETENER</button>
-        </div>
-        <p class="hint" id="sessionMeta">—</p>
-
-        <div id="eventsWrap" class="hidden">
-          <div class="event-grid" id="actions"></div>
-          <button class="btn btn-undo" id="btnUndo" type="button" disabled style="margin-top:10px">↩ Deshacer último dato</button>
-        </div>
-      </div>
-
-      <!-- EVIDENCE -->
-      <div class="card hidden" id="stepEvidence">
-        <h2 class="step-title">Evidencia con hora</h2>
-        <p class="step-sub">La cámara toma la foto del lugar y la app le pega encima fecha, hora y tu rol.</p>
-        <button class="btn btn-ev" id="btnOpenCam" type="button">📷 Tomar evidencia ahora</button>
-        <div class="thumbs" id="thumbs"></div>
-      </div>
-
-      <!-- TOOLS -->
-      <div class="card hidden" id="stepTools">
-        <button class="btn btn-ghost" id="btnSync" type="button">☁ Sincronizar a la nube</button>
-        <div class="session-actions" style="margin-top:8px">
-          <button class="btn btn-ghost" id="btnExportCsv" type="button">CSV</button>
-          <button class="btn btn-ghost" id="btnExportXls" type="button">Excel</button>
-        </div>
-        <button class="btn btn-ghost" id="btnExportEv" type="button">Descargar evidencias</button>
-        <button class="btn btn-ghost" id="btnLogout" type="button">Cerrar sesión de acceso</button>
-        <details style="margin-top:10px">
-          <summary>Últimos eventos</summary>
-          <div class="log" id="log"></div>
-        </details>
-        <div class="footer-links">
-          Hoja:
-          <a href="https://docs.google.com/spreadsheets/d/1d9ENgcMqzBSVAOwZEWOjHpchaviAVXHoeKjGcmcR1WY/edit" target="_blank" rel="noopener">Google Sheets</a>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <!-- CAMERA MODAL -->
   <div class="modal hidden" id="camModal">
     <div class="modal-card">
       <header>
-        <strong id="camTitle">Evidencia</strong>
+        <strong>Evidencia</strong>
         <button class="btn btn-ghost" id="btnCloseCam" type="button" style="width:auto;min-height:36px;padding:8px 12px">Cerrar</button>
       </header>
       <div class="cam-stage">
@@ -400,18 +382,15 @@
 
   <script>
     const OBSERVERS = ["Fredy", "Ever", "Katherinne"];
-    const STORAGE_KEY = "comedor_toma_datos_v4";
+    const STORAGE_KEY = "comedor_toma_datos_v5";
     const DB_NAME = "comedor_evidencias_db";
     const DB_STORE = "fotos";
-    // hash SHA-256 de la contraseña del grupo (no se guarda en claro)
     const PASS_HASH = "9f9cad286c4b63f47316191751c3d6b70c45000b014ebc48ac0e34f00c33dfd6";
     const AUTH_KEY = "comedor_auth_ok_v1";
-    let CLOUD_SCRIPT_URL = "";
-    let HAS_SERVER = false;
     const ROLE_META = {
-      A: { label: "A Entrada", desc: "Entrada (tiquetes)" },
-      B: { label: "B Piso 1", desc: "Piso 1 (caja)" },
-      C: { label: "C Piso 2", desc: "Piso 2 (caja)" }
+      A: { label: "A Entrada", desc: "Entrada (tiquetes)", title: "Función: tiquetes" },
+      B: { label: "B Piso 1", desc: "Piso 1 (caja)", title: "Función: caja piso 1" },
+      C: { label: "C Piso 2", desc: "Piso 2 (caja)", title: "Función: caja piso 2" }
     };
     const EVENT_DEFS = {
       A: [
@@ -431,11 +410,8 @@
 
     const el = (id) => document.getElementById(id);
     const state = loadState();
-    let dbPromise = null;
-    let syncing = false;
-    let camStream = null;
-    let facingMode = "environment";
-    let pendingComposite = null;
+    let dbPromise = null, syncing = false, camStream = null, facingMode = "environment";
+    let pendingComposite = null, CLOUD_SCRIPT_URL = "", HAS_SERVER = false;
 
     function loadState() {
       try {
@@ -453,8 +429,7 @@
       return {
         date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
         time: `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`,
-        iso: d.toISOString(),
-        ms: d.getTime()
+        iso: d.toISOString(), ms: d.getTime()
       };
     }
     function uid(prefix) { return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; }
@@ -466,12 +441,17 @@
       toast._t = setTimeout(() => t.classList.remove("show"), 2200);
     }
 
-    async function sha256(text) {
-      const data = new TextEncoder().encode(text);
-      const buf = await crypto.subtle.digest("SHA-256", data);
-      return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    function showView(name) {
+      ["viewLogin", "viewWho", "viewRole", "viewWork"].forEach((id) => {
+        el(id).classList.toggle("hidden", id !== name);
+      });
+      window.scrollTo(0, 0);
     }
 
+    async function sha256(text) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+      return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
     async function api(path, opts = {}) {
       const res = await fetch(path, {
         credentials: "include",
@@ -482,7 +462,6 @@
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       return data;
     }
-
     async function loadConfig() {
       try {
         const res = await fetch("./config.json", { cache: "no-store" });
@@ -491,23 +470,14 @@
         if (cfg.cloudScriptUrl) CLOUD_SCRIPT_URL = String(cfg.cloudScriptUrl).trim();
       } catch (_) {}
     }
-
-    function enterApp() {
-      el("viewLogin").classList.add("hidden");
-      el("viewApp").classList.remove("hidden");
-      refreshUI();
-      queueSync();
-    }
-
-    async function clientLogin(password) {
-      const hash = await sha256(password);
-      if (hash !== PASS_HASH) throw new Error("Contraseña incorrecta");
-      sessionStorage.setItem(AUTH_KEY, "1");
-      localStorage.setItem(AUTH_KEY, "1");
-    }
-
     function clientAuthed() {
       return sessionStorage.getItem(AUTH_KEY) === "1" || localStorage.getItem(AUTH_KEY) === "1";
+    }
+    async function clientLogin(password) {
+      if ((await sha256(password)) !== PASS_HASH) throw new Error("Contraseña incorrecta");
+      sessionStorage.setItem(AUTH_KEY, "1");
+      localStorage.setItem(AUTH_KEY, "1");
+      sessionStorage.setItem("comedor_pass", password);
     }
 
     function openDb() {
@@ -515,8 +485,9 @@
       dbPromise = new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, 1);
         req.onupgradeneeded = () => {
-          const db = req.result;
-          if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE, { keyPath: "id" });
+          if (!req.result.objectStoreNames.contains(DB_STORE)) {
+            req.result.createObjectStore(DB_STORE, { keyPath: "id" });
+          }
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
@@ -567,39 +538,51 @@
       el("ovDate").textContent = p.date;
       el("ovTime").textContent = p.time;
       el("ovMeta").textContent = [
-        state.observer || "sin nombre",
-        state.role ? `Rol ${state.role}` : "sin rol",
+        state.observer || "?",
+        state.role ? `Rol ${state.role}` : "?",
         state.session ? "sesión ACTIVA" : "sin sesión"
       ].join(" · ");
     }
 
-    function setNetBanner(online) {
+    function updateBanners() {
+      const online = navigator.onLine;
+      el("pillNet").textContent = online ? "Red OK" : "Sin red";
+      el("pillNet").className = online ? "pill on" : "pill warn";
+      const cloudOk = !!(HAS_SERVER || CLOUD_SCRIPT_URL);
+      el("pillCloud").textContent = cloudOk ? "Nube lista" : "Nube off";
+      el("pillCloud").className = cloudOk ? "pill on" : "pill warn";
+
       const b = el("netBanner");
-      const pill = el("pillNet");
-      if (online) {
-        pill.textContent = "Red OK";
-        pill.className = "pill on";
-        b.classList.remove("show");
-      } else {
-        pill.textContent = "Sin red";
-        pill.className = "pill warn";
+      if (!online) {
         b.className = "banner show warn";
-        b.textContent = "Sin conexión: sigue tomando datos (quedan en el celular). Cuando vuelva la red, pulsa sincronizar o exporta CSV/Excel.";
+        b.textContent = "Sin conexión: los datos y fotos quedan en el celular. Usa CSV/Excel y «Descargar evidencias». Cuando vuelva la red, pulsa «Subir pendientes».";
+      } else if (!cloudOk) {
+        b.className = "banner show info";
+        b.textContent = "Hay red, pero falta activar el puente a Sheets/Drive (Apps Script). Mientras tanto usa las descargas locales.";
+      } else {
+        b.classList.remove("show");
       }
     }
 
+    function routeAfterAuth() {
+      if (!state.observer) return showView("viewWho");
+      if (!state.role) return showView("viewRole");
+      showView("viewWork");
+      refreshUI();
+    }
+
     function renderNameChips() {
-      const box = el("nameChips");
-      box.innerHTML = OBSERVERS.map((n) =>
+      el("nameChips").innerHTML = OBSERVERS.map((n) =>
         `<button type="button" class="chip ${state.observer === n ? "selected" : ""}" data-name="${n}">
-          ${n}<small>Observador</small>
+          ${n}<small>Toca para continuar</small>
         </button>`
       ).join("");
-      box.querySelectorAll(".chip").forEach((btn) => {
+      el("nameChips").querySelectorAll(".chip").forEach((btn) => {
         btn.addEventListener("click", () => {
           state.observer = btn.dataset.name;
           saveState();
           toast(`Hola, ${state.observer}`);
+          showView("viewRole");
         });
       });
     }
@@ -613,17 +596,12 @@
         b.className = `btn ${def.cls}`;
         b.textContent = def.label;
         b.addEventListener("click", () => {
-          b.classList.remove("flash");
-          void b.offsetWidth;
-          b.classList.add("flash");
           if (def.special === "fila") {
             const v = prompt("¿Cuál se ve más larga?\n1 = Piso 1\n2 = Piso 2\n0 = Iguales", "1");
             if (v === null) return;
             const map = { "1": "P1_mas_larga", "2": "P2_mas_larga", "0": "iguales" };
             recordEvent(def, map[v.trim()] || v.trim());
-          } else {
-            recordEvent(def, "");
-          }
+          } else recordEvent(def, "");
         });
         box.appendChild(b);
       });
@@ -634,19 +612,12 @@
       document.querySelectorAll(".role").forEach((r) => {
         r.classList.toggle("selected", r.dataset.role === state.role);
       });
-
-      el("pillWho").textContent = state.observer && state.role
-        ? `${state.observer} · ${ROLE_META[state.role].label}`
-        : (state.observer || "Elige nombre");
-
-      const ready = !!(state.observer && state.role);
-      el("stepRole").classList.toggle("hidden", !state.observer);
-      el("stepWork").classList.toggle("hidden", !ready);
-      el("stepEvidence").classList.toggle("hidden", !ready);
-      el("stepTools").classList.toggle("hidden", !ready);
-
+      if (state.role && ROLE_META[state.role]) {
+        el("workTitle").textContent = ROLE_META[state.role].title;
+        el("pillWho").textContent = `${state.observer} · ${ROLE_META[state.role].label}`;
+      }
       const active = !!state.session;
-      el("btnStart").disabled = active || !ready;
+      el("btnStart").disabled = active || !(state.observer && state.role);
       el("btnStop").disabled = !active;
       el("btnUndo").disabled = !active || !state.session.eventIds.length;
       el("eventsWrap").classList.toggle("hidden", !active);
@@ -654,31 +625,27 @@
       el("pillSession").className = active ? "pill on" : "pill off";
       el("sessionCount").textContent = active ? String(state.session.eventIds.length) : "0";
       el("sessionMeta").textContent = active
-        ? `ID ${state.session.session_id} · desde ${state.session.hora_inicio}`
-        : "Pulsa INICIAR cuando estén listos los 3.";
-
+        ? `Desde ${state.session.hora_inicio}`
+        : "Inicien casi juntos los 3.";
       if (active) renderActions();
       renderLog();
       renderThumbs();
-      setNetBanner(navigator.onLine);
+      updateBanners();
     }
 
     function renderLog() {
       const recent = state.events.slice(-25).reverse();
       el("log").innerHTML = recent.map((e) =>
-        `<div><strong>${e.hora}</strong> ${e.evento}${e.valor_extra && !String(e.valor_extra).startsWith("ev_") ? " · " + e.valor_extra : ""}</div>`
+        `<div><strong>${e.hora}</strong> ${e.evento}</div>`
       ).join("") || "<div>Sin eventos</div>";
     }
-
     async function renderThumbs() {
       const metas = state.evidenciasMeta.slice(-4).reverse();
       const parts = [];
       for (const m of metas) {
         const rec = await idbGet(m.id);
-        parts.push(`<figure>
-          ${rec ? `<img src="${rec.dataUrl}" alt="${m.tipo}">` : ""}
-          <figcaption>${m.hora} · ${m.origen}</figcaption>
-        </figure>`);
+        parts.push(`<figure>${rec ? `<img src="${rec.dataUrl}" alt="">` : ""}
+          <figcaption>${m.hora} · ${m.origen === "drive" ? "en Drive" : "local"}</figcaption></figure>`);
       }
       el("thumbs").innerHTML = parts.join("");
     }
@@ -761,7 +728,7 @@
       if (removed.evento === "sesion_inicio") return toast("No se puede deshacer el inicio");
       state.session.eventIds.pop();
       state.events.splice(idx, 1);
-      if (removed.evento === "evidencia_compuesta" || removed.evento === "evidencia_lugar" || removed.evento === "evidencia_pantalla") {
+      if (removed.evento === "evidencia_compuesta") {
         const evId = removed.valor_extra;
         if (evId) {
           state.evidenciasMeta = state.evidenciasMeta.filter((m) => m.id !== evId);
@@ -780,11 +747,9 @@
     }
 
     async function postSync(payload) {
-      // 1) Backend propio (local / Railway) si existe
       if (HAS_SERVER) {
         const res = await fetch("/api/sync", {
-          method: "POST",
-          credentials: "include",
+          method: "POST", credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
@@ -792,7 +757,6 @@
         if (!res.ok || !data.ok) throw new Error(data.error || "sync_fail");
         return data;
       }
-      // 2) Apps Script directo (GitHub Pages) — lleva contraseña
       if (!CLOUD_SCRIPT_URL) throw new Error("sin_cloud");
       const body = { ...payload, password: sessionStorage.getItem("comedor_pass") || "" };
       const res = await fetch(CLOUD_SCRIPT_URL, {
@@ -812,7 +776,12 @@
     async function syncAll(reason) {
       if (syncing) return;
       if (!navigator.onLine) {
-        toast("Sin red: datos seguros en local");
+        toast("Sin red: usa descargas locales");
+        updateBanners();
+        return;
+      }
+      if (!HAS_SERVER && !CLOUD_SCRIPT_URL) {
+        if (reason === "manual") toast("Nube no configurada: descarga CSV/fotos");
         return;
       }
       syncing = true;
@@ -829,6 +798,7 @@
           try {
             const rec = await idbGet(m.id);
             if (!rec) continue;
+            const linked = state.events.find((e) => e.valor_extra === m.id);
             const data = await postSync({
               type: "evidencia",
               mime: rec.mime || "image/jpeg",
@@ -837,17 +807,22 @@
                 id: m.id, session_id: m.session_id || "", fecha: m.fecha, hora: m.hora,
                 timestamp_iso: m.timestamp_iso, rol: m.rol, observador: m.observador,
                 tipo: m.tipo, nombre_archivo: m.nombre_archivo, notas: m.notas || ""
-              }
+              },
+              eventRow: linked ? eventRow({ ...linked, notas: linked.notas || "" }) : null
             });
             m.origen = "drive";
             m.drive_url = data.url || "";
+            if (linked) {
+              linked.notas = data.url || linked.notas;
+              linked.origen = "sheets";
+            }
             ok++;
           } catch (_) { fail++; }
         }
         saveState();
-        if (fail) toast(`Sync parcial: ${ok} ok, ${fail} fallaron. Exporta por si acaso.`);
-        else if (ok) toast(`Nube OK · ${ok} ítems`);
-        else if (reason === "manual") toast("No hay pendientes");
+        if (fail) toast(`Subida parcial (${ok} ok). Reintenta o descarga local.`);
+        else if (ok) toast(`Subido a la nube · ${ok}`);
+        else if (reason === "manual") toast("Nada pendiente");
       } finally {
         syncing = false;
         refreshUI();
@@ -855,10 +830,9 @@
     }
     function queueSync() {
       clearTimeout(queueSync._t);
-      queueSync._t = setTimeout(() => syncAll("auto"), 450);
+      queueSync._t = setTimeout(() => syncAll("auto"), 400);
     }
 
-    /* CAMERA + COMPOSITE */
     async function startCamera() {
       stopCamera();
       try {
@@ -874,18 +848,14 @@
         el("camReviewActions").classList.add("hidden");
         pendingComposite = null;
       } catch (err) {
-        console.error(err);
-        toast("No se pudo abrir la cámara. Usando selector de fotos…");
+        toast("Cámara no disponible, usa el selector");
         el("camFallback").click();
       }
     }
     function stopCamera() {
-      if (camStream) {
-        camStream.getTracks().forEach((t) => t.stop());
-        camStream = null;
-      }
-      const video = el("camVideo");
-      video.srcObject = null;
+      if (camStream) camStream.getTracks().forEach((t) => t.stop());
+      camStream = null;
+      el("camVideo").srcObject = null;
     }
     function openCamModal() {
       el("camModal").classList.remove("hidden");
@@ -896,42 +866,6 @@
       el("camModal").classList.add("hidden");
       pendingComposite = null;
     }
-
-    function composeEvidenceFromVideo() {
-      const video = el("camVideo");
-      const canvas = el("camCanvas");
-      const w = video.videoWidth || 1080;
-      const h = video.videoHeight || 1440;
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(video, 0, 0, w, h);
-      burnOverlay(ctx, w, h);
-      return canvas.toDataURL("image/jpeg", 0.92);
-    }
-
-    async function composeEvidenceFromFile(file) {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(r.result);
-        r.onerror = reject;
-        r.readAsDataURL(file);
-      });
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = dataUrl;
-      });
-      const canvas = el("camCanvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-      burnOverlay(ctx, img.width, img.height);
-      return canvas.toDataURL("image/jpeg", 0.92);
-    }
-
     function burnOverlay(ctx, w, h) {
       const p = nowParts();
       const gradH = Math.max(160, Math.round(h * 0.28));
@@ -941,30 +875,48 @@
       g.addColorStop(1, "rgba(0,0,0,0.88)");
       ctx.fillStyle = g;
       ctx.fillRect(0, h - gradH, w, gradH);
-
-      // banner superior
       ctx.fillStyle = "rgba(11, 18, 32, 0.72)";
       ctx.fillRect(0, 0, w, Math.round(h * 0.09));
       ctx.fillStyle = "#74c0fc";
       ctx.font = `bold ${Math.round(w * 0.035)}px sans-serif`;
       ctx.textAlign = "left";
       ctx.fillText("EVIDENCIA TOMA DE DATOS · COMEDOR", Math.round(w * 0.04), Math.round(h * 0.055));
-
       ctx.fillStyle = "#ffffff";
       ctx.font = `bold ${Math.round(w * 0.11)}px ui-monospace, monospace`;
-      ctx.textAlign = "left";
       ctx.fillText(p.time, Math.round(w * 0.05), h - Math.round(h * 0.12));
-
       ctx.font = `bold ${Math.round(w * 0.045)}px sans-serif`;
       ctx.fillStyle = "#ffec99";
       ctx.fillText(p.date, Math.round(w * 0.05), h - Math.round(h * 0.07));
-
       ctx.font = `${Math.round(w * 0.032)}px sans-serif`;
       ctx.fillStyle = "#dee2e6";
-      const meta = `${state.observer || "?"} · Rol ${state.role || "?"} · ${state.session ? state.session.session_id : "sin sesión"}`;
-      ctx.fillText(meta, Math.round(w * 0.05), h - Math.round(h * 0.035));
+      ctx.fillText(`${state.observer || "?"} · Rol ${state.role || "?"} · ${state.session ? state.session.session_id : "sin sesión"}`, Math.round(w * 0.05), h - Math.round(h * 0.035));
     }
-
+    function composeEvidenceFromVideo() {
+      const video = el("camVideo");
+      const canvas = el("camCanvas");
+      canvas.width = video.videoWidth || 1080;
+      canvas.height = video.videoHeight || 1440;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      burnOverlay(ctx, canvas.width, canvas.height);
+      return canvas.toDataURL("image/jpeg", 0.92);
+    }
+    async function composeEvidenceFromFile(file) {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      const img = new Image();
+      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = dataUrl; });
+      const canvas = el("camCanvas");
+      canvas.width = img.width; canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      burnOverlay(ctx, img.width, img.height);
+      return canvas.toDataURL("image/jpeg", 0.92);
+    }
     async function saveComposite(dataUrl) {
       const p = nowParts();
       const id = uid("ev");
@@ -974,7 +926,7 @@
         fecha: p.date, hora: p.time, timestamp_iso: p.iso, timestamp_ms: p.ms,
         rol: state.role || "", observador: state.observer || "",
         tipo: "compuesta", nombre_archivo: nombre, notas: "foto+reloj",
-        origen: "local", drive_url: "", drive_id: ""
+        origen: "local", drive_url: ""
       };
       await idbPut({ id, dataUrl, mime: "image/jpeg", meta });
       state.evidenciasMeta.push(meta);
@@ -983,9 +935,9 @@
         fecha: p.date, hora: p.time, timestamp_iso: p.iso, timestamp_ms: p.ms,
         rol: state.role || "", rol_descripcion: state.role ? ROLE_META[state.role].desc : "",
         observador: state.observer || "", evento: "evidencia_compuesta",
-        evento_descripcion: "Foto del lugar con hora/fecha quemada",
+        evento_descripcion: "Foto con hora/fecha",
         piso: state.role === "B" ? "1" : (state.role === "C" ? "2" : "ambos"),
-        valor_extra: id, notas: nombre, origen: "local"
+        valor_extra: id, notas: "", origen: "local"
       });
       if (state.session) state.session.eventIds.push(state.events[state.events.length - 1].id);
       saveState();
@@ -1009,21 +961,20 @@
     }
     function exportCsv() {
       const header = ["id","session_id","fecha","hora","timestamp_iso","timestamp_ms","rol","rol_descripcion","observador","evento","evento_descripcion","piso","valor_extra","notas","origen"];
-      const stamp = nowParts();
-      downloadBlob(`eventos_${stamp.date}.csv`, "text/csv;charset=utf-8", "\uFEFF" + toCsv([header, ...state.events.map(eventRow)]));
+      downloadBlob(`eventos_${nowParts().date}.csv`, "text/csv;charset=utf-8", "\uFEFF" + toCsv([header, ...state.events.map(eventRow)]));
       toast("CSV listo");
     }
     function exportExcel() {
       const header = ["id","session_id","fecha","hora","timestamp_iso","timestamp_ms","rol","rol_descripcion","observador","evento","evento_descripcion","piso","valor_extra","notas","origen"];
       const th = header.map((h) => `<th>${h}</th>`).join("");
       const trs = state.events.map((e) => `<tr>${eventRow(e).map((c) => `<td>${String(c).replace(/</g,"&lt;")}</td>`).join("")}</tr>`).join("");
-      const html = `<html><head><meta charset="UTF-8"></head><body><table border="1"><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table></body></html>`;
-      downloadBlob(`eventos_${nowParts().date}.xls`, "application/vnd.ms-excel", html);
+      downloadBlob(`eventos_${nowParts().date}.xls`, "application/vnd.ms-excel",
+        `<html><head><meta charset="UTF-8"></head><body><table border="1"><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table></body></html>`);
       toast("Excel listo");
     }
     async function exportEvidencias() {
       const all = await idbGetAll();
-      if (!all.length) return toast("No hay evidencias");
+      if (!all.length) return toast("No hay evidencias locales");
       for (const rec of all) {
         const parts = rec.dataUrl.split(",");
         const bstr = atob(parts[1]);
@@ -1034,55 +985,51 @@
       toast(`Descargando ${all.length}`);
     }
 
-    // Auth boot
     async function boot() {
       await loadConfig();
       try {
         const me = await api("/api/me");
         HAS_SERVER = true;
-        if (me.authed) enterApp();
+        if (me.authed) routeAfterAuth();
+        else showView("viewLogin");
       } catch (_) {
         HAS_SERVER = false;
-        if (clientAuthed()) enterApp();
+        if (clientAuthed()) routeAfterAuth();
+        else showView("viewLogin");
       }
     }
 
     el("btnLogin").addEventListener("click", async () => {
       const password = el("password").value;
       try {
-        if (HAS_SERVER) {
-          await api("/api/login", { method: "POST", body: JSON.stringify({ password }) });
-        } else {
-          await clientLogin(password);
-          sessionStorage.setItem("comedor_pass", password);
-        }
-        enterApp();
+        if (HAS_SERVER) await api("/api/login", { method: "POST", body: JSON.stringify({ password }) });
+        else await clientLogin(password);
         toast("Acceso OK");
+        routeAfterAuth();
       } catch (err) {
-        // si el server no respondió en el click, intentar modo cliente
         try {
           await clientLogin(password);
-          sessionStorage.setItem("comedor_pass", password);
           HAS_SERVER = false;
-          enterApp();
           toast("Acceso OK");
+          routeAfterAuth();
         } catch (err2) {
-          toast(err2.message || err.message || "Contraseña incorrecta");
+          toast(err2.message || "Contraseña incorrecta");
         }
       }
     });
-    el("password").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") el("btnLogin").click();
-    });
+    el("password").addEventListener("keydown", (e) => { if (e.key === "Enter") el("btnLogin").click(); });
 
     document.querySelectorAll(".role").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.role = btn.dataset.role;
         saveState();
         toast(`Rol ${state.role}`);
+        showView("viewWork");
+        refreshUI();
       });
     });
-
+    el("backToWho").addEventListener("click", () => showView("viewWho"));
+    el("backToRole").addEventListener("click", () => showView("viewRole"));
     el("btnStart").addEventListener("click", startSession);
     el("btnStop").addEventListener("click", stopSession);
     el("btnUndo").addEventListener("click", () => undoLast());
@@ -1092,9 +1039,8 @@
     el("btnExportEv").addEventListener("click", exportEvidencias);
     el("btnLogout").addEventListener("click", async () => {
       try { await api("/api/logout", { method: "POST", body: "{}" }); } catch (_) {}
-      sessionStorage.removeItem(AUTH_KEY);
+      sessionStorage.clear();
       localStorage.removeItem(AUTH_KEY);
-      sessionStorage.removeItem("comedor_pass");
       location.reload();
     });
 
@@ -1111,8 +1057,7 @@
     });
     el("btnRetake").addEventListener("click", () => startCamera());
     el("btnKeep").addEventListener("click", async () => {
-      if (!pendingComposite) return;
-      await saveComposite(pendingComposite);
+      if (pendingComposite) await saveComposite(pendingComposite);
     });
     el("btnFlipCam").addEventListener("click", () => {
       facingMode = facingMode === "environment" ? "user" : "environment";
@@ -1130,8 +1075,8 @@
       el("camReviewActions").classList.remove("hidden");
     });
 
-    window.addEventListener("online", () => { setNetBanner(true); queueSync(); });
-    window.addEventListener("offline", () => setNetBanner(false));
+    window.addEventListener("online", () => { updateBanners(); queueSync(); });
+    window.addEventListener("offline", updateBanners);
 
     tick();
     setInterval(tick, 250);
