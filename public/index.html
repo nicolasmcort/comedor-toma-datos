@@ -922,7 +922,7 @@
       saveState();
       touchActivity();
       toast("Sesión iniciada");
-      flushSessionToCloud(state.session);
+      // No sube fila a "sesiones" hasta cerrar (evita filas sin hora_fin y confusión)
       queueSync();
     }
 
@@ -1023,15 +1023,12 @@
           try { await postSync({ type: "evento", row: eventRow(evt) }); evt.origen = "sheets"; ok++; }
           catch (_) { fail++; }
         }
-        for (const s of state.sessions) {
+        // Solo sesiones YA CERRADAS (con hora_fin)
+        for (const s of state.sessions.filter((x) => x.hora_fin && !x.synced)) {
           try {
             await postSync({ type: "sesion", row: sessionRow(s) });
             s.synced = true;
           } catch (_) {}
-        }
-        // También actualiza la sesión abierta (sin hora_fin) si existe
-        if (state.session) {
-          try { await postSync({ type: "sesion", row: sessionRow(state.session) }); } catch (_) {}
         }
         for (const m of state.evidenciasMeta.filter((e) => e.origen !== "drive")) {
           try {
