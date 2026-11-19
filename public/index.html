@@ -345,7 +345,7 @@
             <button class="btn btn-ok" id="btnStart" type="button">INICIAR</button>
             <button class="btn btn-danger" id="btnStop" type="button" disabled>DETENER</button>
           </div>
-          <p class="hint" id="sessionMeta">Pulsa INICIAR cuando estén listos.</p>
+          <p class="hint" id="sessionMeta">Pulsa INICIAR cuando estén listos. Sin tocar nada 5 min se cierra sola.</p>
           <div id="eventsWrap" class="hidden" style="margin-top:12px">
             <div class="event-grid" id="actions"></div>
             <p class="hint" id="pagoHint" style="display:none;margin-top:8px">En caja: primero INICIO, luego FIN; se alternan solos para evitar errores.</p>
@@ -449,6 +449,9 @@
     let pendingComposite = null, CLOUD_SCRIPT_URL = "", HAS_SERVER = false;
     // Para roles B/C: espera "inicio" o "fin" del siguiente toque de pago
     let pagoEspera = "inicio";
+    const IDLE_CLOSE_MS = 5 * 60 * 1000;
+    let lastActivityAt = Date.now();
+    let idleTimer = null;
 
     function loadState() {
       try {
@@ -470,6 +473,13 @@
       };
     }
     function uid(prefix) { return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; }
+    function newSessionId(role, observer) {
+      const who = String(observer || "x").replace(/\s+/g, "").slice(0, 4);
+      const t = nowParts().time.replace(/:/g, "");
+      const r = Math.random().toString(36).slice(2, 6);
+      // Ej: C_Ever_082629_k3f9  (fácil de distinguir en Sheets)
+      return `${role}_${who}_${t}_${r}`;
+    }
     function toast(msg) {
       const t = el("toast");
       t.textContent = msg;
@@ -741,8 +751,8 @@
       el("pillSession").className = active ? "pill on" : "pill off";
       el("sessionCount").textContent = active ? String(state.session.eventIds.length) : "0";
       el("sessionMeta").textContent = active
-        ? `Desde ${state.session.hora_inicio}`
-        : "Inicien casi juntos los 3.";
+        ? `Desde ${state.session.hora_inicio} · id ${state.session.session_id} · se cierra a los 5 min sin tocar`
+        : "Pulsa INICIAR cuando estén listos. Sin tocar nada 5 min se cierra sola.";
       if (active) renderActions();
       renderLog();
       renderThumbs();
@@ -788,6 +798,7 @@
       if (isCaja && def.code === "pago_inicio") pagoEspera = "fin";
       if (isCaja && def.code === "pago_fin") pagoEspera = "inicio";
       saveState();
+      touchActivity();
       if (isCaja) applyPagoButtonState();
       toast(`${def.code} · ${p.time}`);
       if (navigator.vibrate) navigator.vibrate(25);
@@ -801,6 +812,32 @@
         if (e && Number(e.timestamp_ms) > max) max = Number(e.timestamp_ms);
       }
       return max || Date.now();
+    }
+
+    function clearIdleTimer() {
+      clearTimeout(idleTimer);
+      idleTimer = null;
+    }
+
+    function armIdleTimer() {
+      clearIdleTimer();
+      if (!state.session) return;
+      idleTimer = setTimeout(() => {
+        if (!state.session) return;
+        if (Date.now() - lastActivityAt < IDLE_CLOSE_MS - 500) {
+          armIdleTimer();
+          return;
+        }
+        const sess = finalizeActiveSession("inactividad_5min");
+        flushSessionToCloud(sess);
+        queueSync();
+        toast("Sesión cerrada: 5 min sin actividad");
+      }, IDLE_CLOSE_MS);
+    }
+
+    function touchActivity() {
+      lastActivityAt = Date.now();
+      if (state.session) armIdleTimer();
     }
 
     function flushSessionToCloud(sess, opts = {}) {
@@ -853,6 +890,7 @@
       state.sessions.push({ ...sess });
       state.session = null;
       pagoEspera = "inicio";
+      clearIdleTimer();
       saveState();
       return sess;
     }
@@ -865,7 +903,7 @@
       const p = nowParts();
       const piso = state.role === "A" ? "ambos" : (state.role === "B" ? "1" : "2");
       state.session = {
-        session_id: uid(`ses_${state.role}`), fecha: p.date,
+        session_id: newSessionId(state.role, state.observer), fecha: p.date,
         hora_inicio: p.time, timestamp_inicio_iso: p.iso, timestamp_inicio_ms: p.ms,
         hora_fin: "", timestamp_fin_iso: "", timestamp_fin_ms: null,
         rol: state.role, rol_descripcion: ROLE_META[state.role].desc,
@@ -882,6 +920,7 @@
       state.session.eventIds.push(evt.id);
       pagoEspera = "inicio";
       saveState();
+      touchActivity();
       toast("Sesión iniciada");
       flushSessionToCloud(state.session);
       queueSync();
@@ -927,6 +966,7 @@
       if (removed.evento === "pago_inicio") pagoEspera = "inicio";
       if (removed.evento === "pago_fin") pagoEspera = "fin";
       saveState();
+      touchActivity();
       if (state.role === "B" || state.role === "C") applyPagoButtonState();
       toast(`Deshecho: ${removed.evento}`);
     }
@@ -984,7 +1024,14 @@
           catch (_) { fail++; }
         }
         for (const s of state.sessions) {
-          try { await postSync({ type: "sesion", row: sessionRow(s) }); } catch (_) {}
+          try {
+            await postSync({ type: "sesion", row: sessionRow(s) });
+            s.synced = true;
+          } catch (_) {}
+        }
+        // También actualiza la sesión abierta (sin hora_fin) si existe
+        if (state.session) {
+          try { await postSync({ type: "sesion", row: sessionRow(state.session) }); } catch (_) {}
         }
         for (const m of state.evidenciasMeta.filter((e) => e.origen !== "drive")) {
           try {
@@ -1241,6 +1288,9 @@
     el("btnStart").addEventListener("click", startSession);
     el("btnStop").addEventListener("click", stopSession);
     el("btnUndo").addEventListener("click", () => undoLast());
+    // Cualquier toque en la pantalla de trabajo cuenta como actividad
+    el("viewWork").addEventListener("pointerdown", () => { if (state.session) touchActivity(); }, { passive: true });
+    el("viewWork").addEventListener("keydown", () => { if (state.session) touchActivity(); });
     el("btnSync").addEventListener("click", () => syncAll("manual"));
     el("btnExportCsv").addEventListener("click", exportCsv);
     el("btnExportXls").addEventListener("click", exportExcel);
