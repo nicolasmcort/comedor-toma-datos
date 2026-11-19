@@ -397,9 +397,10 @@
           <p class="hint" id="sessionMeta">Pulsa INICIAR cuando estén listos.</p>
 
           <div class="sync-box">
-            <h3>Sincronización del equipo</h3>
-            <p class="sync-hint">Mira quién ya está en la app o quién ya inició. Cuando los 3 digan “EN SESIÓN”, empiecen a registrar.</p>
+            <h3>¿Quién más ya inició?</h3>
+            <p class="sync-hint">Tu estado ya se ve arriba (Sesión ACTIVA). Aquí solo ves a los otros compañeros.</p>
             <div class="sync-list" id="syncList"></div>
+            <p class="hint" id="syncError"></p>
             <button class="btn btn-ghost" id="btnRefreshSync" type="button" style="margin-top:10px;min-height:44px">↻ Actualizar estado</button>
           </div>
 
@@ -575,14 +576,21 @@
     }
 
     async function pushPresencia(estado) {
-      if (!state.observer || !state.role) return;
-      if (!navigator.onLine || (!HAS_SERVER && !CLOUD_SCRIPT_URL)) return;
+      if (!state.observer || !state.role) return false;
+      if (!navigator.onLine || (!HAS_SERVER && !CLOUD_SCRIPT_URL)) return false;
       try {
         await postSync({ type: "presencia_set", presencia: presenciaPayload(estado) });
-      } catch (_) {}
+        return true;
+      } catch (_) {
+        return false;
+      }
     }
 
-    function renderPresencia(list) {
+    function othersOfTeam() {
+      return OBSERVERS.filter((n) => n !== state.observer);
+    }
+
+    function renderPresencia(list, opts = {}) {
       lastPresence = list || [];
       const byName = {};
       lastPresence.forEach((p) => { if (p.observador) byName[p.observador] = p; });
@@ -590,44 +598,61 @@
         en_sesion: { text: "EN SESIÓN", cls: "live" },
         en_app: { text: "EN LA APP", cls: "app" },
         fin: { text: "TERMINÓ", cls: "done" },
-        ausente: { text: "AUSENTE", cls: "away" }
+        ausente: { text: "AUSENTE", cls: "away" },
+        wait: { text: "SIN SEÑAL", cls: "wait" }
       };
-      el("syncList").innerHTML = OBSERVERS.map((name) => {
+
+      const others = othersOfTeam();
+      el("syncList").innerHTML = others.map((name) => {
         const p = byName[name];
-        const estado = p ? p.estado : "wait";
-        const meta = labels[estado] || { text: "SIN SEÑAL", cls: "wait" };
-        const rolTxt = p && p.rol ? `Rol ${p.rol}` : "—";
-        const horaTxt = p && p.hora ? ` · ${p.hora}` : "";
-        const me = name === state.observer ? " (tú)" : "";
+        const estado = p ? (p.estado || "wait") : "wait";
+        const meta = labels[estado] || labels.wait;
+        const rolTxt = p && p.rol ? `Rol ${p.rol}` : "aún no reporta";
+        const horaTxt = p && p.hora ? ` · desde ${p.hora}` : "";
         return `<div class="sync-row">
-          <div class="left">${name}${me}<small>${rolTxt}${horaTxt}</small></div>
+          <div class="left">${name}<small>${rolTxt}${horaTxt}</small></div>
           <span class="sync-badge ${meta.cls}">${meta.text}</span>
         </div>`;
-      }).join("");
+      }).join("") || `<div class="hint">No hay otros compañeros en la lista.</div>`;
 
-      const live = OBSERVERS.filter((n) => byName[n] && byName[n].estado === "en_sesion");
-      if (!state.session && live.length > 0 && live.length < 3) {
-        el("sessionMeta").textContent = `Ya iniciaron: ${live.join(", ")}. Esperen a los 3 o únanse.`;
-      } else if (!state.session && live.length === 3) {
-        el("sessionMeta").textContent = "Los 3 están EN SESIÓN. Si aún no iniciaste, pulsa INICIAR ahora.";
+      const err = el("syncError");
+      if (opts.error) {
+        err.textContent = opts.error;
+      } else {
+        err.textContent = "";
+      }
+
+      const liveOthers = others.filter((n) => byName[n] && byName[n].estado === "en_sesion");
+      const liveAll = liveOthers.length + (state.session ? 1 : 0);
+      if (state.session && liveOthers.length === others.length && others.length > 0) {
+        el("sessionMeta").textContent = "Los demás también están EN SESIÓN. Ya pueden registrar.";
+      } else if (state.session && liveOthers.length > 0) {
+        el("sessionMeta").textContent = `Tú activo. También iniciaron: ${liveOthers.join(", ")}.`;
+      } else if (state.session) {
+        el("sessionMeta").textContent = `Desde ${state.session.hora_inicio} · esperando que los demás inicien…`;
+      } else if (liveOthers.length > 0) {
+        el("sessionMeta").textContent = `Ya iniciaron: ${liveOthers.join(", ")}. Pulsa INICIAR para unirte.`;
       }
     }
 
     async function refreshPresencia() {
       if (!navigator.onLine || (!HAS_SERVER && !CLOUD_SCRIPT_URL)) {
-        renderPresencia(OBSERVERS.map((n) => ({
-          observador: n,
-          rol: n === state.observer ? state.role : "",
-          estado: n === state.observer ? (state.session ? "en_sesion" : "en_app") : "ausente",
-          hora: ""
-        })));
+        renderPresencia([], { error: "Sin nube/red: no se puede ver a los demás ahora." });
         return;
       }
       try {
+        // primero publica mi estado, luego lee el del equipo
+        await pushPresencia(state.session ? "en_sesion" : "en_app");
         const data = await postSync({ type: "presencia_get" });
+        if (!data || data.ok === false) {
+          renderPresencia([], { error: "El servidor aún no tiene presencia. Republica Codigo.gs (Nueva versión)." });
+          return;
+        }
         renderPresencia(data.presencia || []);
-      } catch (_) {
-        renderPresencia(lastPresence);
+      } catch (err) {
+        renderPresencia(lastPresence, {
+          error: "No se pudo leer el equipo. ¿Republicaste Codigo.gs con Nueva versión?"
+        });
       }
     }
 
