@@ -14,7 +14,7 @@ var APP_PASSWORD = "unalcomedor";
 var PRESENCE_TTL_MS = 3 * 60 * 1000; // 3 min sin heartbeat = ausente
 
 function doGet() {
-  return json_({ ok: true, service: "comedor-toma-datos", version: 5, folder: FOLDER_NAME });
+  return json_({ ok: true, service: "comedor-toma-datos", version: 6, folder: FOLDER_NAME });
 }
 
 function doPost(e) {
@@ -36,8 +36,7 @@ function doPost(e) {
     if (data.type === "sesion" && data.row) {
       var sh2 = ss.getSheetByName("sesiones");
       var sid = String(data.row[0]);
-      if (!idExists_(sh2, sid)) sh2.appendRow(data.row);
-      else updateSession_(sh2, data.row);
+      upsertSession_(sh2, data.row);
       return json_({ ok: true, type: "sesion", id: sid });
     }
 
@@ -178,18 +177,30 @@ function idExists_(sheet, id) {
   return false;
 }
 
-function updateSession_(sheet, row) {
+/** Actualiza la 1ª fila con ese session_id; borra duplicados; si no existe, append. */
+function upsertSession_(sheet, row) {
+  var sid = String(row[0] || "");
   var last = sheet.getLastRow();
-  if (last < 2) {
+  if (!sid || last < 2) {
     sheet.appendRow(row);
     return;
   }
   var ids = sheet.getRange(2, 1, last, 1).getValues();
+  var first = -1;
+  var extras = [];
   for (var i = 0; i < ids.length; i++) {
-    if (String(ids[i][0]) === String(row[0])) {
-      sheet.getRange(i + 2, 1, i + 2, row.length).setValues([row]);
-      return;
+    if (String(ids[i][0]) === sid) {
+      if (first < 0) first = i + 2;
+      else extras.push(i + 2);
     }
   }
-  sheet.appendRow(row);
+  if (first < 0) {
+    sheet.appendRow(row);
+    return;
+  }
+  sheet.getRange(first, 1, first, row.length).setValues([row]);
+  // borrar duplicados de abajo hacia arriba
+  for (var j = extras.length - 1; j >= 0; j--) {
+    sheet.deleteRow(extras[j]);
+  }
 }

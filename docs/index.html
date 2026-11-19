@@ -658,6 +658,8 @@
       saveState();
       showView("viewWho");
       renderNameChips();
+      // Sube sesiones/eventos pendientes (incluye cierres automáticos)
+      queueSync();
     }
 
     function renderNameChips() {
@@ -792,7 +794,74 @@
       queueSync();
     }
 
+    function lastActivityMs(sess) {
+      let max = Number(sess.timestamp_inicio_ms) || 0;
+      for (const id of sess.eventIds || []) {
+        const e = state.events.find((x) => x.id === id);
+        if (e && Number(e.timestamp_ms) > max) max = Number(e.timestamp_ms);
+      }
+      return max || Date.now();
+    }
+
+    function flushSessionToCloud(sess, opts = {}) {
+      if (!sess) return;
+      const password = sessionStorage.getItem("comedor_pass") || "";
+      const pending = state.events.filter((e) => e.origen !== "sheets").map(eventRow);
+      if (opts.keepalive && CLOUD_SCRIPT_URL && navigator.sendBeacon) {
+        try {
+          navigator.sendBeacon(
+            CLOUD_SCRIPT_URL,
+            new Blob([JSON.stringify({ type: "sesion", password, row: sessionRow(sess) })], { type: "text/plain;charset=utf-8" })
+          );
+          if (pending.length) {
+            navigator.sendBeacon(
+              CLOUD_SCRIPT_URL,
+              new Blob([JSON.stringify({ type: "batch", password, eventos: pending })], { type: "text/plain;charset=utf-8" })
+            );
+          }
+        } catch (_) {}
+        return;
+      }
+      postSync({ type: "sesion", row: sessionRow(sess) }).catch(() => {});
+    }
+
+    /** Cierra la sesión activa, calcula duración y deja listo el sync. */
+    function finalizeActiveSession(motivo, endMs) {
+      if (!state.session) return null;
+      const end = endMs ? new Date(endMs) : new Date();
+      const p = nowParts(end);
+      const sess = state.session;
+      sess.hora_fin = p.time;
+      sess.timestamp_fin_iso = p.iso;
+      sess.timestamp_fin_ms = p.ms;
+      sess.duracion_segundos = Math.max(0, Math.round((p.ms - sess.timestamp_inicio_ms) / 1000));
+      if (motivo && motivo !== "manual") {
+        sess.notas = [sess.notas || "", motivo].filter(Boolean).join(" | ");
+      }
+      const piso = state.role === "A" ? "ambos" : (state.role === "B" ? "1" : "2");
+      const stopEvt = {
+        id: uid("evt"), session_id: sess.session_id,
+        fecha: p.date, hora: p.time, timestamp_iso: p.iso, timestamp_ms: p.ms,
+        rol: state.role, rol_descripcion: ROLE_META[state.role].desc,
+        observador: state.observer, evento: "sesion_fin",
+        evento_descripcion: motivo === "manual" ? "Fin de sesión" : `Fin de sesión (${motivo})`,
+        piso, valor_extra: motivo || "", notas: "", origen: "local"
+      };
+      state.events.push(stopEvt);
+      sess.eventIds.push(stopEvt.id);
+      sess.total_eventos = sess.eventIds.length;
+      state.sessions.push({ ...sess });
+      state.session = null;
+      pagoEspera = "inicio";
+      saveState();
+      return sess;
+    }
+
     function startSession() {
+      if (state.session) {
+        const prev = finalizeActiveSession("reemplazo", lastActivityMs(state.session));
+        flushSessionToCloud(prev);
+      }
       const p = nowParts();
       const piso = state.role === "A" ? "ambos" : (state.role === "B" ? "1" : "2");
       state.session = {
@@ -814,36 +883,28 @@
       pagoEspera = "inicio";
       saveState();
       toast("Sesión iniciada");
+      flushSessionToCloud(state.session);
       queueSync();
-      postSync({ type: "sesion", row: sessionRow(state.session) }).catch(() => {});
     }
 
     function stopSession() {
-      if (!state.session) return;
-      const p = nowParts();
-      const sess = state.session;
-      sess.hora_fin = p.time;
-      sess.timestamp_fin_iso = p.iso;
-      sess.timestamp_fin_ms = p.ms;
-      sess.duracion_segundos = Math.round((p.ms - sess.timestamp_inicio_ms) / 1000);
-      const stopEvt = {
-        id: uid("evt"), session_id: sess.session_id,
-        fecha: p.date, hora: p.time, timestamp_iso: p.iso, timestamp_ms: p.ms,
-        rol: state.role, rol_descripcion: ROLE_META[state.role].desc,
-        observador: state.observer, evento: "sesion_fin",
-        evento_descripcion: "Fin de sesión",
-        piso: state.role === "A" ? "ambos" : (state.role === "B" ? "1" : "2"),
-        valor_extra: "", notas: "", origen: "local"
-      };
-      state.events.push(stopEvt);
-      sess.eventIds.push(stopEvt.id);
-      sess.total_eventos = sess.eventIds.length;
-      state.sessions.push({ ...sess });
-      state.session = null;
-      pagoEspera = "inicio";
-      saveState();
+      const sess = finalizeActiveSession("manual");
+      if (!sess) return;
       toast("Sesión detenida");
+      flushSessionToCloud(sess);
       queueSync();
+    }
+
+    function autoCloseOnLeave() {
+      if (!state.session) return;
+      const sess = finalizeActiveSession("cierre_navegador");
+      flushSessionToCloud(sess, { keepalive: true });
+    }
+
+    function recoverOrphanSession() {
+      if (!state.session) return;
+      finalizeActiveSession("recupera_al_abrir", lastActivityMs(state.session));
+      // El sync a la nube ocurre tras el login (ya hay contraseña)
     }
 
     async function undoLast() {
@@ -1132,9 +1193,19 @@
         HAS_SERVER = false;
       }
       sessionStorage.removeItem(AUTH_KEY);
+      // Si quedó una sesión abierta (no se pudo cerrar al salir), ciérrala con la última actividad
+      recoverOrphanSession();
       showView("viewLogin");
       renderNameChips();
     }
+
+    window.addEventListener("pagehide", (e) => {
+      if (e.persisted) return;
+      autoCloseOnLeave();
+    });
+    window.addEventListener("beforeunload", () => {
+      autoCloseOnLeave();
+    });
 
     el("btnLogin").addEventListener("click", async () => {
       const password = el("password").value;
