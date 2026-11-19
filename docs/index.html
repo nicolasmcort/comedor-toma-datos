@@ -1180,6 +1180,7 @@
       });
       if (state.session) state.session.eventIds.push(state.events[state.events.length - 1].id);
       saveState();
+      touchActivity();
       toast(`Evidencia guardada · ${p.time}`);
       queueSync();
       closeCamModal();
