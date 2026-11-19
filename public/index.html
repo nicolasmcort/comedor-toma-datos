@@ -369,6 +369,7 @@
               <button class="btn btn-ghost" id="btnExportXls" type="button">Excel</button>
             </div>
             <button class="btn btn-ghost" id="btnExportEv" type="button">Descargar evidencias (local)</button>
+            <button class="btn btn-ghost" id="btnClearLocal" type="button">🗑 Borrar historial local del celular</button>
             <button class="btn btn-ghost" id="btnLogout" type="button">Cerrar acceso</button>
           </div>
           <details style="margin-top:16px">
@@ -417,7 +418,8 @@
 
   <script>
     const OBSERVERS = ["Fredy", "Ever", "Katherinne"];
-    const STORAGE_KEY = "comedor_toma_datos_v5";
+    // v6: evita re-subir historial viejo del celular si borran el Sheet
+    const STORAGE_KEY = "comedor_toma_datos_v6";
     const DB_NAME = "comedor_evidencias_db";
     const DB_STORE = "fotos";
     const PASS_HASH = "9f9cad286c4b63f47316191751c3d6b70c45000b014ebc48ac0e34f00c33dfd6";
@@ -856,10 +858,40 @@
               new Blob([JSON.stringify({ type: "batch", password, eventos: pending })], { type: "text/plain;charset=utf-8" })
             );
           }
+          // best-effort: marcar sincronizada si ya tiene fin
+          if (sess.hora_fin) sess.synced = true;
         } catch (_) {}
         return;
       }
-      postSync({ type: "sesion", row: sessionRow(sess) }).catch(() => {});
+      postSync({ type: "sesion", row: sessionRow(sess) })
+        .then(() => {
+          if (sess.hora_fin) {
+            sess.synced = true;
+            const local = state.sessions.find((s) => s.session_id === sess.session_id);
+            if (local) local.synced = true;
+            saveState();
+          }
+        })
+        .catch(() => {});
+    }
+
+    function clearLocalHistory() {
+      if (!confirm("¿Borrar del celular el historial local (eventos/sesiones/fotos)?\nNo borra lo que ya está en Google Sheets/Drive.")) return;
+      state.events = [];
+      state.sessions = [];
+      state.evidenciasMeta = [];
+      state.session = null;
+      pagoEspera = "inicio";
+      clearIdleTimer();
+      saveState();
+      openDb().then(async (db) => {
+        try {
+          const tx = db.transaction(DB_STORE, "readwrite");
+          tx.objectStore(DB_STORE).clear();
+        } catch (_) {}
+      });
+      toast("Historial local borrado");
+      refreshUI();
     }
 
     /** Cierra la sesión activa, calcula duración y deja listo el sync. */
@@ -922,7 +954,7 @@
       saveState();
       touchActivity();
       toast("Sesión iniciada");
-      // No sube fila a "sesiones" hasta cerrar (evita filas sin hora_fin y confusión)
+      flushSessionToCloud(state.session);
       queueSync();
     }
 
@@ -1023,12 +1055,17 @@
           try { await postSync({ type: "evento", row: eventRow(evt) }); evt.origen = "sheets"; ok++; }
           catch (_) { fail++; }
         }
-        // Solo sesiones YA CERRADAS (con hora_fin)
-        for (const s of state.sessions.filter((x) => x.hora_fin && !x.synced)) {
+        // Solo sesiones aún no subidas (evita resucitar filas si borraron el Sheet)
+        for (const s of state.sessions.filter((x) => !x.synced)) {
           try {
             await postSync({ type: "sesion", row: sessionRow(s) });
             s.synced = true;
-          } catch (_) {}
+            ok++;
+          } catch (_) { fail++; }
+        }
+        // Sesión abierta: actualiza/crea su fila provisional
+        if (state.session) {
+          try { await postSync({ type: "sesion", row: sessionRow(state.session) }); } catch (_) {}
         }
         for (const m of state.evidenciasMeta.filter((e) => e.origen !== "drive")) {
           try {
@@ -1290,6 +1327,7 @@
     el("viewWork").addEventListener("pointerdown", () => { if (state.session) touchActivity(); }, { passive: true });
     el("viewWork").addEventListener("keydown", () => { if (state.session) touchActivity(); });
     el("btnSync").addEventListener("click", () => syncAll("manual"));
+    el("btnClearLocal").addEventListener("click", () => clearLocalHistory());
     el("btnExportCsv").addEventListener("click", exportCsv);
     el("btnExportXls").addEventListener("click", exportExcel);
     el("btnExportEv").addEventListener("click", exportEvidencias);
