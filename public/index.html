@@ -842,15 +842,25 @@
       if (state.session) armIdleTimer();
     }
 
-    function flushSessionToCloud(sess, opts = {}) {
-      if (!sess) return;
+    function markSessionSynced(sess) {
+      if (!sess || !sess.hora_fin) return;
+      sess.synced = true;
+      const local = state.sessions.find((s) => s.session_id === sess.session_id);
+      if (local) local.synced = true;
+      saveState();
+    }
+
+    /** Solo sube sesiones YA CERRADAS (con hora_fin). Así el Sheet no queda con filas a medias. */
+    async function flushSessionToCloud(sess, opts = {}) {
+      if (!sess || !sess.hora_fin) return false;
       const password = sessionStorage.getItem("comedor_pass") || "";
       const pending = state.events.filter((e) => e.origen !== "sheets").map(eventRow);
+      const payload = { type: "sesion", password, row: sessionRow(sess) };
       if (opts.keepalive && CLOUD_SCRIPT_URL && navigator.sendBeacon) {
         try {
           navigator.sendBeacon(
             CLOUD_SCRIPT_URL,
-            new Blob([JSON.stringify({ type: "sesion", password, row: sessionRow(sess) })], { type: "text/plain;charset=utf-8" })
+            new Blob([JSON.stringify(payload)], { type: "text/plain;charset=utf-8" })
           );
           if (pending.length) {
             navigator.sendBeacon(
@@ -858,21 +868,17 @@
               new Blob([JSON.stringify({ type: "batch", password, eventos: pending })], { type: "text/plain;charset=utf-8" })
             );
           }
-          // best-effort: marcar sincronizada si ya tiene fin
-          if (sess.hora_fin) sess.synced = true;
+          // No marcar synced: si el beacon falla, el próximo sync lo reintenta
         } catch (_) {}
-        return;
+        return false;
       }
-      postSync({ type: "sesion", row: sessionRow(sess) })
-        .then(() => {
-          if (sess.hora_fin) {
-            sess.synced = true;
-            const local = state.sessions.find((s) => s.session_id === sess.session_id);
-            if (local) local.synced = true;
-            saveState();
-          }
-        })
-        .catch(() => {});
+      try {
+        await postSync({ type: "sesion", row: sessionRow(sess) });
+        markSessionSynced(sess);
+        return true;
+      } catch (_) {
+        return false;
+      }
     }
 
     function clearLocalHistory() {
@@ -953,17 +959,18 @@
       pagoEspera = "inicio";
       saveState();
       touchActivity();
-      toast("Sesión iniciada");
-      flushSessionToCloud(state.session);
+      toast("Sesión iniciada (el resumen en Sheets se escribe al DETENER)");
       queueSync();
     }
 
-    function stopSession() {
+    async function stopSession() {
       const sess = finalizeActiveSession("manual");
       if (!sess) return;
-      toast("Sesión detenida");
-      flushSessionToCloud(sess);
+      const ok = await flushSessionToCloud(sess);
       queueSync();
+      toast(ok
+        ? `Sesión cerrada · ${sess.duracion_segundos}s · fin ${sess.hora_fin}`
+        : `Sesión cerrada local · fin ${sess.hora_fin} (reintenta Subir a la nube)`);
     }
 
     function autoCloseOnLeave() {
@@ -1055,17 +1062,13 @@
           try { await postSync({ type: "evento", row: eventRow(evt) }); evt.origen = "sheets"; ok++; }
           catch (_) { fail++; }
         }
-        // Solo sesiones aún no subidas (evita resucitar filas si borraron el Sheet)
-        for (const s of state.sessions.filter((x) => !x.synced)) {
+        // Solo sesiones CERRADAS aún no subidas
+        for (const s of state.sessions.filter((x) => x.hora_fin && !x.synced)) {
           try {
             await postSync({ type: "sesion", row: sessionRow(s) });
             s.synced = true;
             ok++;
           } catch (_) { fail++; }
-        }
-        // Sesión abierta: actualiza/crea su fila provisional
-        if (state.session) {
-          try { await postSync({ type: "sesion", row: sessionRow(state.session) }); } catch (_) {}
         }
         for (const m of state.evidenciasMeta.filter((e) => e.origen !== "drive")) {
           try {

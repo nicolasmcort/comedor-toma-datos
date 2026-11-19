@@ -14,7 +14,7 @@ var APP_PASSWORD = "unalcomedor";
 var PRESENCE_TTL_MS = 3 * 60 * 1000; // 3 min sin heartbeat = ausente
 
 function doGet() {
-  return json_({ ok: true, service: "comedor-toma-datos", version: 6, folder: FOLDER_NAME });
+  return json_({ ok: true, service: "comedor-toma-datos", version: 7, folder: FOLDER_NAME });
 }
 
 function doPost(e) {
@@ -36,8 +36,8 @@ function doPost(e) {
     if (data.type === "sesion" && data.row) {
       var sh2 = ss.getSheetByName("sesiones");
       var sid = String(data.row[0]);
-      upsertSession_(sh2, data.row);
-      return json_({ ok: true, type: "sesion", id: sid });
+      var action = upsertSession_(sh2, data.row);
+      return json_({ ok: true, type: "sesion", id: sid, action: action });
     }
 
     if (data.type === "batch" && data.eventos) {
@@ -177,30 +177,41 @@ function idExists_(sheet, id) {
   return false;
 }
 
-/** Actualiza la 1ª fila con ese session_id; borra duplicados; si no existe, append. */
+/**
+ * Actualiza la 1ª fila con ese session_id; borra duplicados; si no existe, append.
+ * Devuelve "created" | "updated".
+ */
 function upsertSession_(sheet, row) {
-  var sid = String(row[0] || "");
-  var last = sheet.getLastRow();
-  if (!sid || last < 2) {
-    sheet.appendRow(row);
-    return;
-  }
-  var ids = sheet.getRange(2, 1, last, 1).getValues();
-  var first = -1;
-  var extras = [];
-  for (var i = 0; i < ids.length; i++) {
-    if (String(ids[i][0]) === sid) {
-      if (first < 0) first = i + 2;
-      else extras.push(i + 2);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var sid = String(row[0] || "").trim();
+    var last = sheet.getLastRow();
+    if (!sid || last < 2) {
+      sheet.appendRow(row);
+      return "created";
     }
-  }
-  if (first < 0) {
-    sheet.appendRow(row);
-    return;
-  }
-  sheet.getRange(first, 1, first, row.length).setValues([row]);
-  // borrar duplicados de abajo hacia arriba
-  for (var j = extras.length - 1; j >= 0; j--) {
-    sheet.deleteRow(extras[j]);
+    var ids = sheet.getRange(2, 1, last, 1).getValues();
+    var first = -1;
+    var extras = [];
+    for (var i = 0; i < ids.length; i++) {
+      if (String(ids[i][0]).trim() === sid) {
+        if (first < 0) first = i + 2;
+        else extras.push(i + 2);
+      }
+    }
+    if (first < 0) {
+      sheet.appendRow(row);
+      return "created";
+    }
+    // Forzar escritura de todas las columnas (incluye hora_fin / duración)
+    sheet.getRange(first, 1, first, row.length).setValues([row]);
+    SpreadsheetApp.flush();
+    for (var j = extras.length - 1; j >= 0; j--) {
+      sheet.deleteRow(extras[j]);
+    }
+    return "updated";
+  } finally {
+    lock.releaseLock();
   }
 }
