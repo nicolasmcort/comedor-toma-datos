@@ -216,6 +216,55 @@
       color: #a5d8ff;
       border-color: #339af0;
     }
+    .sync-box {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: #0f1726;
+    }
+    .sync-box h3 {
+      margin: 0 0 8px;
+      font-size: .95rem;
+    }
+    .sync-box .sync-hint {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: .78rem;
+      line-height: 1.35;
+    }
+    .sync-list { display: grid; gap: 8px; }
+    .sync-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #152238;
+      border: 1px solid var(--line);
+      font-size: .9rem;
+    }
+    .sync-row .left { font-weight: 700; }
+    .sync-row .left small {
+      display: block;
+      font-weight: 500;
+      color: var(--muted);
+      margin-top: 2px;
+      font-size: .75rem;
+    }
+    .sync-badge {
+      font-size: .72rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .sync-badge.wait { background: #24344f; color: #adb5bd; }
+    .sync-badge.app { background: #1c3d5a; color: #74c0fc; }
+    .sync-badge.live { background: #143d2a; color: #8ce99a; }
+    .sync-badge.done { background: #2b2111; color: #ffd8a8; }
+    .sync-badge.away { background: #3b1f1f; color: #ffa8a8; }
     .hint { color: var(--muted); font-size: .8rem; line-height: 1.35; margin: 8px 0 0; }
     .count { font-size: 1.3rem; font-weight: 800; }
     .stack { display:grid; gap:12px; }
@@ -346,6 +395,14 @@
             <button class="btn btn-danger" id="btnStop" type="button" disabled>DETENER</button>
           </div>
           <p class="hint" id="sessionMeta">Pulsa INICIAR cuando estén listos.</p>
+
+          <div class="sync-box">
+            <h3>Sincronización del equipo</h3>
+            <p class="sync-hint">Mira quién ya está en la app o quién ya inició. Cuando los 3 digan “EN SESIÓN”, empiecen a registrar.</p>
+            <div class="sync-list" id="syncList"></div>
+            <button class="btn btn-ghost" id="btnRefreshSync" type="button" style="margin-top:10px;min-height:44px">↻ Actualizar estado</button>
+          </div>
+
           <div id="eventsWrap" class="hidden" style="margin-top:12px">
             <div class="event-grid" id="actions"></div>
             <button class="btn btn-undo" id="btnUndo" type="button" disabled style="margin-top:10px">↩ Deshacer último</button>
@@ -446,6 +503,8 @@
     const state = loadState();
     let dbPromise = null, syncing = false, camStream = null, facingMode = "environment";
     let pendingComposite = null, CLOUD_SCRIPT_URL = "", HAS_SERVER = false;
+    let presenceTimer = null;
+    let lastPresence = [];
 
     function loadState() {
       try {
@@ -480,6 +539,96 @@
         el(id).classList.toggle("hidden", id !== name);
       });
       window.scrollTo(0, 0);
+      if (name === "viewWork") startPresenceLoop();
+      else stopPresenceLoop();
+    }
+
+    function stopPresenceLoop() {
+      if (presenceTimer) {
+        clearInterval(presenceTimer);
+        presenceTimer = null;
+      }
+    }
+
+    function startPresenceLoop() {
+      stopPresenceLoop();
+      pushPresencia(state.session ? "en_sesion" : "en_app");
+      refreshPresencia();
+      presenceTimer = setInterval(() => {
+        pushPresencia(state.session ? "en_sesion" : "en_app");
+        refreshPresencia();
+      }, 8000);
+    }
+
+    function presenciaPayload(estado) {
+      const p = nowParts();
+      return {
+        observador: state.observer || "",
+        rol: state.role || "",
+        estado,
+        session_id: state.session ? state.session.session_id : "",
+        fecha: p.date,
+        hora: p.time,
+        updated_iso: p.iso,
+        updated_ms: p.ms
+      };
+    }
+
+    async function pushPresencia(estado) {
+      if (!state.observer || !state.role) return;
+      if (!navigator.onLine || (!HAS_SERVER && !CLOUD_SCRIPT_URL)) return;
+      try {
+        await postSync({ type: "presencia_set", presencia: presenciaPayload(estado) });
+      } catch (_) {}
+    }
+
+    function renderPresencia(list) {
+      lastPresence = list || [];
+      const byName = {};
+      lastPresence.forEach((p) => { if (p.observador) byName[p.observador] = p; });
+      const labels = {
+        en_sesion: { text: "EN SESIÓN", cls: "live" },
+        en_app: { text: "EN LA APP", cls: "app" },
+        fin: { text: "TERMINÓ", cls: "done" },
+        ausente: { text: "AUSENTE", cls: "away" }
+      };
+      el("syncList").innerHTML = OBSERVERS.map((name) => {
+        const p = byName[name];
+        const estado = p ? p.estado : "wait";
+        const meta = labels[estado] || { text: "SIN SEÑAL", cls: "wait" };
+        const rolTxt = p && p.rol ? `Rol ${p.rol}` : "—";
+        const horaTxt = p && p.hora ? ` · ${p.hora}` : "";
+        const me = name === state.observer ? " (tú)" : "";
+        return `<div class="sync-row">
+          <div class="left">${name}${me}<small>${rolTxt}${horaTxt}</small></div>
+          <span class="sync-badge ${meta.cls}">${meta.text}</span>
+        </div>`;
+      }).join("");
+
+      const live = OBSERVERS.filter((n) => byName[n] && byName[n].estado === "en_sesion");
+      if (!state.session && live.length > 0 && live.length < 3) {
+        el("sessionMeta").textContent = `Ya iniciaron: ${live.join(", ")}. Esperen a los 3 o únanse.`;
+      } else if (!state.session && live.length === 3) {
+        el("sessionMeta").textContent = "Los 3 están EN SESIÓN. Si aún no iniciaste, pulsa INICIAR ahora.";
+      }
+    }
+
+    async function refreshPresencia() {
+      if (!navigator.onLine || (!HAS_SERVER && !CLOUD_SCRIPT_URL)) {
+        renderPresencia(OBSERVERS.map((n) => ({
+          observador: n,
+          rol: n === state.observer ? state.role : "",
+          estado: n === state.observer ? (state.session ? "en_sesion" : "en_app") : "ausente",
+          hora: ""
+        })));
+        return;
+      }
+      try {
+        const data = await postSync({ type: "presencia_get" });
+        renderPresencia(data.presencia || []);
+      } catch (_) {
+        renderPresencia(lastPresence);
+      }
     }
 
     async function sha256(text) {
@@ -774,8 +923,11 @@
       state.events.push(evt);
       state.session.eventIds.push(evt.id);
       saveState();
-      toast("Sesión iniciada");
+      toast("Sesión iniciada — avisa al equipo");
       queueSync();
+      // publica sesión abierta + presencia de inmediato
+      postSync({ type: "sesion", row: sessionRow(state.session) }).catch(() => {});
+      pushPresencia("en_sesion").then(() => refreshPresencia());
     }
 
     function stopSession() {
@@ -803,6 +955,7 @@
       saveState();
       toast("Sesión detenida");
       queueSync();
+      pushPresencia("fin").then(() => refreshPresencia());
     }
 
     async function undoLast() {
@@ -1124,6 +1277,23 @@
     el("backToRole").addEventListener("click", () => showView("viewRole"));
     el("btnStart").addEventListener("click", startSession);
     el("btnStop").addEventListener("click", stopSession);
+    el("btnRefreshSync").addEventListener("click", () => {
+      pushPresencia(state.session ? "en_sesion" : "en_app");
+      refreshPresencia().then(() => toast("Estado actualizado"));
+    });
+    window.addEventListener("beforeunload", () => {
+      // best-effort: marcar fin si salen de la página en sesión
+      if (state.observer) {
+        const payload = JSON.stringify({
+          type: "presencia_set",
+          password: sessionStorage.getItem("comedor_pass") || "",
+          presencia: presenciaPayload(state.session ? "en_sesion" : "fin")
+        });
+        if (CLOUD_SCRIPT_URL && navigator.sendBeacon) {
+          navigator.sendBeacon(CLOUD_SCRIPT_URL, payload);
+        }
+      }
+    });
     el("btnUndo").addEventListener("click", () => undoLast());
     el("btnSync").addEventListener("click", () => syncAll("manual"));
     el("btnExportCsv").addEventListener("click", exportCsv);

@@ -5,20 +5,16 @@
  * https://docs.google.com/spreadsheets/d/1k3cfW-U_YUYRNMiiZSZMaoOmLkjWd7R7fzv5fqNkfe4/edit
  * FOTOS: carpeta Drive "Evidencias Comedor" (se crea sola en la 1ª subida)
  *
- * Publicar UNA VEZ con la misma cuenta personal:
- * 1. script.google.com → Nuevo proyecto → pegar este código
- * 2. Implementar → Aplicación web
- *    - Ejecutar como: Yo
- *    - Acceso: Cualquier persona
- * 3. Copiar URL /exec → docs/config.json (cloudScriptUrl) o pásasela al asistente
+ * Si cambias este archivo: vuelve a Implementar → Nueva versión (misma URL /exec).
  */
 
 var SPREADSHEET_ID = "1k3cfW-U_YUYRNMiiZSZMaoOmLkjWd7R7fzv5fqNkfe4";
 var FOLDER_NAME = "Evidencias Comedor";
 var APP_PASSWORD = "unalcomedor";
+var PRESENCE_TTL_MS = 3 * 60 * 1000; // 3 min sin heartbeat = ausente
 
 function doGet() {
-  return json_({ ok: true, service: "comedor-toma-datos", version: 4, folder: FOLDER_NAME });
+  return json_({ ok: true, service: "comedor-toma-datos", version: 5, folder: FOLDER_NAME });
 }
 
 function doPost(e) {
@@ -57,24 +53,95 @@ function doPost(e) {
       return json_({ ok: true, type: "batch", added: added });
     }
 
-    // Solo Drive (sin hoja "evidencias")
     if (data.type === "evidencia" && data.meta && data.base64) {
       var result = saveEvidence_(data);
-      // deja rastro en eventos si viene eventRow
       if (data.eventRow && data.eventRow.length) {
         var shEv = ss.getSheetByName("eventos");
         var eid = String(data.eventRow[0]);
-        // mete URL de Drive en notas (columna N = índice 13) si viene vacía
         if (!data.eventRow[13]) data.eventRow[13] = result.url;
         if (!idExists_(shEv, eid)) shEv.appendRow(data.eventRow);
       }
       return json_({ ok: true, type: "evidencia", id: data.meta.id, url: result.url, fileId: result.id });
     }
 
+    if (data.type === "presencia_set" && data.presencia) {
+      upsertPresencia_(ss, data.presencia);
+      return json_({ ok: true, type: "presencia_set" });
+    }
+
+    if (data.type === "presencia_get") {
+      return json_({ ok: true, type: "presencia_get", presencia: listPresencia_(ss) });
+    }
+
     return json_({ ok: false, error: "payload desconocido" });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
   }
+}
+
+function ensurePresenciaSheet_(ss) {
+  var sh = ss.getSheetByName("presencia");
+  if (!sh) {
+    sh = ss.insertSheet("presencia");
+    sh.appendRow([
+      "observador", "rol", "estado", "session_id",
+      "fecha", "hora", "updated_iso", "updated_ms"
+    ]);
+  }
+  return sh;
+}
+
+function upsertPresencia_(ss, p) {
+  var sh = ensurePresenciaSheet_(ss);
+  var last = sh.getLastRow();
+  var row = [
+    p.observador || "",
+    p.rol || "",
+    p.estado || "en_app",
+    p.session_id || "",
+    p.fecha || "",
+    p.hora || "",
+    p.updated_iso || new Date().toISOString(),
+    p.updated_ms || Date.now()
+  ];
+  if (last < 2) {
+    sh.appendRow(row);
+    return;
+  }
+  var names = sh.getRange(2, 1, last, 1).getValues();
+  for (var i = 0; i < names.length; i++) {
+    if (String(names[i][0]) === String(p.observador)) {
+      sh.getRange(i + 2, 1, i + 2, row.length).setValues([row]);
+      return;
+    }
+  }
+  sh.appendRow(row);
+}
+
+function listPresencia_(ss) {
+  var sh = ensurePresenciaSheet_(ss);
+  var last = sh.getLastRow();
+  var out = [];
+  if (last < 2) return out;
+  var values = sh.getRange(2, 1, last, 8).getValues();
+  var now = Date.now();
+  for (var i = 0; i < values.length; i++) {
+    var updatedMs = Number(values[i][7]) || 0;
+    var estado = String(values[i][2] || "");
+    var stale = updatedMs && (now - updatedMs > PRESENCE_TTL_MS);
+    if (stale && estado !== "fin") estado = "ausente";
+    out.push({
+      observador: String(values[i][0] || ""),
+      rol: String(values[i][1] || ""),
+      estado: estado,
+      session_id: String(values[i][3] || ""),
+      fecha: String(values[i][4] || ""),
+      hora: String(values[i][5] || ""),
+      updated_iso: String(values[i][6] || ""),
+      updated_ms: updatedMs
+    });
+  }
+  return out;
 }
 
 function saveEvidence_(data) {
