@@ -254,12 +254,12 @@
     .cam-stage { position:relative; background:#000; aspect-ratio:3/4; max-height:56vh; }
     .cam-stage video, .cam-stage img { width:100%; height:100%; object-fit:cover; display:block; }
     .cam-overlay {
-      position:absolute; left:0; right:0; bottom:0; padding:14px 12px 16px;
-      background:linear-gradient(transparent, rgba(0,0,0,.85)); color:#fff; pointer-events:none;
+      position:absolute; left:0; right:0; bottom:0; padding:10px 12px 12px;
+      background:linear-gradient(transparent, rgba(0,0,0,.72)); color:#fff; pointer-events:none;
     }
-    .cam-overlay .ov-time { font-size:2rem; font-weight:900; font-variant-numeric:tabular-nums; }
-    .cam-overlay .ov-date { font-size:1rem; margin-top:2px; }
-    .cam-overlay .ov-meta { font-size:.8rem; opacity:.9; margin-top:6px; }
+    .cam-overlay .ov-time { font-size:1.15rem; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:.02em; }
+    .cam-overlay .ov-date { font-size:.78rem; margin-top:2px; color:#ffe8a3; font-weight:700; }
+    .cam-overlay .ov-meta { font-size:.72rem; opacity:.95; margin-top:3px; }
     .modal-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:12px; }
   </style>
 </head>
@@ -425,9 +425,9 @@
     const PASS_HASH = "9f9cad286c4b63f47316191751c3d6b70c45000b014ebc48ac0e34f00c33dfd6";
     const AUTH_KEY = "comedor_auth_ok_v2";
     const ROLE_META = {
-      A: { label: "A Entrada", desc: "Entrada (tiquetes)", title: "Función: tiquetes" },
-      B: { label: "B Piso 1", desc: "Piso 1 (caja)", title: "Función: caja piso 1" },
-      C: { label: "C Piso 2", desc: "Piso 2 (caja)", title: "Función: caja piso 2" }
+      A: { label: "A Entrada", desc: "Entrada (tiquetes)", title: "Función: tiquetes", lugar: "Entrada (tiquetes)" },
+      B: { label: "B Piso 1", desc: "Piso 1 (caja)", title: "Función: caja piso 1", lugar: "Primer piso (caja)" },
+      C: { label: "C Piso 2", desc: "Piso 2 (caja)", title: "Función: caja piso 2", lugar: "Segundo piso (caja)" }
     };
     const EVENT_DEFS = {
       A: [
@@ -589,11 +589,8 @@
       el("clockLine").textContent = p.time;
       el("ovDate").textContent = p.date;
       el("ovTime").textContent = p.time;
-      el("ovMeta").textContent = [
-        state.observer || "?",
-        state.role ? `Rol ${state.role}` : "?",
-        state.session ? "sesión ACTIVA" : "sin sesión"
-      ].join(" · ");
+      const lugar = state.role && ROLE_META[state.role] ? ROLE_META[state.role].lugar : "Sin rol";
+      el("ovMeta").textContent = `${state.observer || "?"} · ${lugar}`;
     }
 
     function pendingCounts() {
@@ -1142,30 +1139,38 @@
       el("camModal").classList.add("hidden");
       pendingComposite = null;
     }
+    function evidenceRoleLabel() {
+      if (state.role && ROLE_META[state.role]) return ROLE_META[state.role].lugar;
+      return "Sin rol";
+    }
+
     function burnOverlay(ctx, w, h) {
       const p = nowParts();
-      const gradH = Math.max(160, Math.round(h * 0.28));
+      const gradH = Math.max(90, Math.round(h * 0.16));
       const g = ctx.createLinearGradient(0, h - gradH, 0, h);
       g.addColorStop(0, "rgba(0,0,0,0)");
-      g.addColorStop(0.35, "rgba(0,0,0,0.55)");
-      g.addColorStop(1, "rgba(0,0,0,0.88)");
+      g.addColorStop(0.4, "rgba(0,0,0,0.45)");
+      g.addColorStop(1, "rgba(0,0,0,0.78)");
       ctx.fillStyle = g;
       ctx.fillRect(0, h - gradH, w, gradH);
-      ctx.fillStyle = "rgba(11, 18, 32, 0.72)";
-      ctx.fillRect(0, 0, w, Math.round(h * 0.09));
-      ctx.fillStyle = "#74c0fc";
-      ctx.font = `bold ${Math.round(w * 0.035)}px sans-serif`;
+
+      const x = Math.round(w * 0.04);
+      const timeSize = Math.max(18, Math.round(w * 0.045));
+      const dateSize = Math.max(12, Math.round(w * 0.028));
+      const metaSize = Math.max(11, Math.round(w * 0.024));
+
       ctx.textAlign = "left";
-      ctx.fillText("EVIDENCIA TOMA DE DATOS · COMEDOR", Math.round(w * 0.04), Math.round(h * 0.055));
       ctx.fillStyle = "#ffffff";
-      ctx.font = `bold ${Math.round(w * 0.11)}px ui-monospace, monospace`;
-      ctx.fillText(p.time, Math.round(w * 0.05), h - Math.round(h * 0.12));
-      ctx.font = `bold ${Math.round(w * 0.045)}px sans-serif`;
-      ctx.fillStyle = "#ffec99";
-      ctx.fillText(p.date, Math.round(w * 0.05), h - Math.round(h * 0.07));
-      ctx.font = `${Math.round(w * 0.032)}px sans-serif`;
-      ctx.fillStyle = "#dee2e6";
-      ctx.fillText(`${state.observer || "?"} · Rol ${state.role || "?"} · ${state.session ? state.session.session_id : "sin sesión"}`, Math.round(w * 0.05), h - Math.round(h * 0.035));
+      ctx.font = `bold ${timeSize}px ui-monospace, monospace`;
+      ctx.fillText(p.time, x, h - Math.round(h * 0.085));
+
+      ctx.fillStyle = "#ffe8a3";
+      ctx.font = `bold ${dateSize}px sans-serif`;
+      ctx.fillText(p.date, x, h - Math.round(h * 0.052));
+
+      ctx.fillStyle = "#e9ecef";
+      ctx.font = `${metaSize}px sans-serif`;
+      ctx.fillText(`${state.observer || "?"} · ${evidenceRoleLabel()}`, x, h - Math.round(h * 0.025));
     }
     function composeEvidenceFromVideo() {
       const video = el("camVideo");
