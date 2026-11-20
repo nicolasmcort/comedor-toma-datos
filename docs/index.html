@@ -193,6 +193,8 @@
 
     .row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
     .event-grid .btn { min-height: 78px; font-size: 1.2rem; }
+    .event-grid.metodos { grid-template-columns: 1fr 1fr; }
+    .event-grid.metodos .btn { min-height: 64px; font-size: 1rem; }
     .tools-stack { display:grid; gap:16px; }
     .cloud-status {
       border-radius: 12px;
@@ -308,12 +310,12 @@
           <button class="role btn-b" data-role="B" type="button">
             <div class="kicker">ROL B</div>
             <div class="name">Piso 1 · Caja</div>
-            <div class="desc">Inicio y fin de cada pago</div>
+            <div class="desc">Inicio + método al cerrar (efectivo, tarjeta, QR, apoyo)</div>
           </button>
           <button class="role btn-c" data-role="C" type="button">
             <div class="kicker">ROL C</div>
             <div class="name">Piso 2 · Caja</div>
-            <div class="desc">Inicio y fin de cada pago</div>
+            <div class="desc">Inicio + método al cerrar (efectivo, tarjeta, QR, apoyo)</div>
           </button>
         </div>
       </div>
@@ -348,7 +350,7 @@
           <p class="hint" id="sessionMeta">Pulsa INICIAR cuando estén listos. Sin tocar nada 5 min se cierra sola.</p>
           <div id="eventsWrap" class="hidden" style="margin-top:12px">
             <div class="event-grid" id="actions"></div>
-            <p class="hint" id="pagoHint" style="display:none;margin-top:8px">En caja: primero INICIO, luego FIN; se alternan solos para evitar errores.</p>
+            <p class="hint" id="pagoHint" style="display:none;margin-top:8px">En caja: INICIO pago → elige método (eso registra el FIN).</p>
             <button class="btn btn-undo" id="btnUndo" type="button" disabled style="margin-top:10px">↩ Deshacer último</button>
           </div>
         </div>
@@ -436,14 +438,18 @@
         { code: "fila_mas_larga", label: "👀 ¿Fila más larga?", desc: "Percepción visual", piso: "ambos", cls: "btn-ghost", special: "fila" }
       ],
       B: [
-        { code: "pago_inicio", label: "▶ INICIO pago", desc: "Empieza a pagar", piso: "1", cls: "btn-b" },
-        { code: "pago_fin", label: "■ FIN pago", desc: "Termina de pagar", piso: "1", cls: "btn-b" }
+        { code: "pago_inicio", label: "▶ INICIO pago", desc: "Empieza a pagar", piso: "1", cls: "btn-b" }
       ],
       C: [
-        { code: "pago_inicio", label: "▶ INICIO pago", desc: "Empieza a pagar", piso: "2", cls: "btn-c" },
-        { code: "pago_fin", label: "■ FIN pago", desc: "Termina de pagar", piso: "2", cls: "btn-c" }
+        { code: "pago_inicio", label: "▶ INICIO pago", desc: "Empieza a pagar", piso: "2", cls: "btn-c" }
       ]
     };
+    const PAGO_METODOS = [
+      { code: "efectivo", label: "💵 Efectivo" },
+      { code: "tarjeta", label: "💳 Tarjeta" },
+      { code: "qr", label: "📱 Código QR" },
+      { code: "apoyo", label: "🍽 Apoyo" }
+    ];
 
     const el = (id) => document.getElementById(id);
     const state = loadState();
@@ -687,26 +693,51 @@
       });
     }
 
-    function applyPagoButtonState() {
-      const inicio = el("actions").querySelector('[data-code="pago_inicio"]');
-      const fin = el("actions").querySelector('[data-code="pago_fin"]');
-      if (!inicio || !fin) return;
-      const esperaInicio = pagoEspera === "inicio";
-      inicio.disabled = !esperaInicio;
-      fin.disabled = esperaInicio;
+    function pagoFinDef(metodoCode) {
+      const piso = state.role === "B" ? "1" : "2";
+      const cls = state.role === "B" ? "btn-b" : "btn-c";
+      const meta = PAGO_METODOS.find((m) => m.code === metodoCode);
+      return {
+        code: "pago_fin",
+        label: meta ? meta.label : metodoCode,
+        desc: `Termina de pagar (${metodoCode})`,
+        piso,
+        cls,
+        metodo: metodoCode
+      };
+    }
+
+    function applyPagoHint() {
       const hint = el("pagoHint");
-      if (hint) {
-        hint.style.display = "block";
-        hint.textContent = esperaInicio
-          ? "Siguiente: INICIO pago"
-          : "Siguiente: FIN pago (el inicio queda bloqueado)";
-      }
+      if (!hint) return;
+      hint.style.display = "block";
+      hint.textContent = pagoEspera === "inicio"
+        ? "Siguiente: INICIO pago"
+        : "Siguiente: elige el método (registra el FIN del pago)";
     }
 
     function renderActions() {
       const box = el("actions");
       box.innerHTML = "";
+      box.classList.remove("metodos");
       const isCaja = state.role === "B" || state.role === "C";
+
+      if (isCaja && pagoEspera === "fin") {
+        box.classList.add("metodos");
+        PAGO_METODOS.forEach((m) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = `btn ${state.role === "B" ? "btn-b" : "btn-c"}`;
+          b.textContent = m.label;
+          b.dataset.code = "pago_fin";
+          b.dataset.metodo = m.code;
+          b.addEventListener("click", () => recordEvent(pagoFinDef(m.code), m.code));
+          box.appendChild(b);
+        });
+        applyPagoHint();
+        return;
+      }
+
       (EVENT_DEFS[state.role] || []).forEach((def) => {
         const b = document.createElement("button");
         b.type = "button";
@@ -715,7 +746,6 @@
         b.dataset.code = def.code;
         b.addEventListener("click", () => {
           if (isCaja && def.code === "pago_inicio" && pagoEspera !== "inicio") return;
-          if (isCaja && def.code === "pago_fin" && pagoEspera !== "fin") return;
           if (def.special === "fila") {
             const v = prompt("¿Cuál se ve más larga?\n1 = Piso 1\n2 = Piso 2\n0 = Iguales", "1");
             if (v === null) return;
@@ -725,7 +755,7 @@
         });
         box.appendChild(b);
       });
-      if (isCaja) applyPagoButtonState();
+      if (isCaja) applyPagoHint();
       else {
         const hint = el("pagoHint");
         if (hint) hint.style.display = "none";
@@ -761,7 +791,7 @@
     function renderLog() {
       const recent = state.events.slice(-25).reverse();
       el("log").innerHTML = recent.map((e) =>
-        `<div><strong>${e.hora}</strong> ${e.evento}</div>`
+        `<div><strong>${e.hora}</strong> ${e.evento}${e.valor_extra ? ` · ${e.valor_extra}` : ""}</div>`
       ).join("") || "<div>Sin eventos</div>";
     }
     async function renderThumbs() {
@@ -784,6 +814,9 @@
       if (isCaja && def.code === "pago_fin" && pagoEspera !== "fin") {
         return toast("Debes registrar INICIO pago primero");
       }
+      if (isCaja && def.code === "pago_fin" && !valorExtra) {
+        return toast("Elige el método de pago");
+      }
       const p = nowParts();
       const evt = {
         id: uid("evt"), session_id: state.session.session_id,
@@ -798,8 +831,9 @@
       if (isCaja && def.code === "pago_fin") pagoEspera = "inicio";
       saveState();
       touchActivity();
-      if (isCaja) applyPagoButtonState();
-      toast(`${def.code} · ${p.time}`);
+      if (isCaja) renderActions();
+      const extra = valorExtra ? ` · ${valorExtra}` : "";
+      toast(`${def.code}${extra} · ${p.time}`);
       if (navigator.vibrate) navigator.vibrate(25);
       queueSync();
     }
@@ -1003,8 +1037,8 @@
       if (removed.evento === "pago_fin") pagoEspera = "fin";
       saveState();
       touchActivity();
-      if (state.role === "B" || state.role === "C") applyPagoButtonState();
-      toast(`Deshecho: ${removed.evento}`);
+      if (state.role === "B" || state.role === "C") renderActions();
+      toast(`Deshecho: ${removed.evento}${removed.valor_extra ? ` · ${removed.valor_extra}` : ""}`);
     }
 
     function eventRow(e) {
